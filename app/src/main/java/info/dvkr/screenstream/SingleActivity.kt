@@ -74,7 +74,7 @@ public class SingleActivity : AppUpdateActivity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         XLog.d(getLog("onNewIntent"))
@@ -111,7 +111,7 @@ public class SingleActivity : AppUpdateActivity() {
                 stopLoading()
                 onPause()
                 webChromeClient = null
-                webViewClient = null
+                webViewClient = WebViewClient()
                 destroy()
             }
         }

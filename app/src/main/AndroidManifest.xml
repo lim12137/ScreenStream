@@ -39,6 +39,7 @@
         <activity
             android:name="info.dvkr.screenstream.SingleActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
             <layout
                 android:minWidth="320dp"

@@ -37,6 +37,7 @@ android {
         targetSdk = rootProject.extra["targetSdkVersion"] as Int
         versionCode = 43007
         versionName = "4.3.7"
+        buildConfigField("String", "LAUNCH_URL", "\"https://example.com/\"")
 
         // https://medium.com/@crafty/no-if-you-do-that-then-you-cant-use-newer-features-on-older-platforms-e-g-fa595333c0a4
         vectorDrawables.useSupportLibrary = true

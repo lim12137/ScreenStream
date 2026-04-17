@@ -1,32 +1,23 @@
 package info.dvkr.screenstream
 
-import android.app.ActivityManager
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
-import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatDelegate
+import android.view.ViewGroup
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.flowWithLifecycle
-import androidx.lifecycle.lifecycleScope
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
-import info.dvkr.screenstream.common.module.StreamingModule
-import info.dvkr.screenstream.common.module.StreamingModuleManager
-import info.dvkr.screenstream.common.settings.AppSettings
-import info.dvkr.screenstream.ui.ScreenStreamContent
-import info.dvkr.screenstream.ui.theme.ScreenStreamTheme
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onCompletion
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.onStart
-import org.koin.android.ext.android.inject
-import kotlin.coroutines.cancellation.CancellationException
+import info.dvkr.screenstream.ui.enableEdgeToEdge
 
 public class SingleActivity : AppUpdateActivity() {
 
@@ -34,54 +25,103 @@ public class SingleActivity : AppUpdateActivity() {
         internal fun getIntent(context: Context): Intent = Intent(context, SingleActivity::class.java)
     }
 
-    private val streamingModulesManager: StreamingModuleManager by inject(mode = LazyThreadSafetyMode.NONE)
-    private val appSettings: AppSettings by inject(mode = LazyThreadSafetyMode.NONE)
+    private lateinit var webView: WebView
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         XLog.d(this@SingleActivity.getLog("onCreate", "Bug workaround: ${window.decorView}"))
         super.onCreate(savedInstanceState)
 
-        setContent {
-            ScreenStreamTheme {
-                ScreenStreamContent(updateFlow = updateFlow)
+        enableEdgeToEdge(
+            statusBarColor = androidx.compose.ui.graphics.Color.Black,
+            navigationBarColor = androidx.compose.ui.graphics.Color.Black
+        )
+
+        webView = WebView(this).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            setBackgroundColor(Color.BLACK)
+            fitsSystemWindows = false
+            settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = true
+                loadWithOverviewMode = true
+                useWideViewPort = true
+                builtInZoomControls = false
+                displayZoomControls = false
+                mediaPlaybackRequiresUserGesture = false
+                cacheMode = WebSettings.LOAD_DEFAULT
+            }
+            webChromeClient = WebChromeClient()
+            webViewClient = object : WebViewClient() {
+                override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean = false
             }
         }
-        AppReview.startTracking(activity = this, streamingModulesManager = streamingModulesManager)
 
-        appSettings.data.map { it.nightMode }
-            .distinctUntilChanged()
-            .onEach { if (AppCompatDelegate.getDefaultNightMode() != it) AppCompatDelegate.setDefaultNightMode(it) }
-            .launchIn(lifecycleScope)
+        ViewCompat.setOnApplyWindowInsetsListener(webView) { _, insets -> insets }
 
-        streamingModulesManager.selectedModuleIdFlow
-            .onStart { XLog.d(this@SingleActivity.getLog("selectedModuleIdFlow.onStart")) }
-            .onEach { moduleId ->
-                if (streamingModulesManager.isActive(moduleId)) return@onEach
-                XLog.i(this@SingleActivity.getLog("selectedModuleIdFlow.onEach:", "$moduleId"))
-                startModuleWithCheck(moduleId)
-            }
-            .catch {
-                if (it is IllegalStateException) XLog.i(this@SingleActivity.getLog("selectedModuleIdFlow.catch: ${it.message}"), it)
-                else throw it
-            }
-            .onCompletion { cause ->
-                if (cause == null || cause is CancellationException) XLog.d(this@SingleActivity.getLog("selectedModuleIdFlow.onCompletion"))
-                else XLog.e(this@SingleActivity.getLog("selectedModuleIdFlow.onCompletion: ${cause.message}"), cause)
-            }
-            .flowWithLifecycle(lifecycle, minActiveState = Lifecycle.State.RESUMED)
-            .launchIn(lifecycleScope)
+        setContentView(webView)
+        hideSystemBars()
+
+        if (savedInstanceState == null) {
+            webView.loadUrl(BuildConfig.LAUNCH_URL)
+        } else {
+            val restoredState = webView.restoreState(savedInstanceState)
+            if (restoredState == null) webView.loadUrl(BuildConfig.LAUNCH_URL)
+        }
     }
 
-    private suspend fun startModuleWithCheck(moduleId: StreamingModule.Id, attempt: Int = 0) {
-        val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
-        XLog.i(this@SingleActivity.getLog("startModuleWithCheck", "$moduleId [${lifecycle.currentState}] Importance: $importance, Attempt $attempt"))
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        XLog.d(getLog("onNewIntent"))
+        hideSystemBars()
+    }
 
-        if (attempt >= 5 || importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE) {
-            streamingModulesManager.startModule(moduleId, this)
+    override fun onResume() {
+        super.onResume()
+        webView.onResume()
+        hideSystemBars()
+    }
+
+    override fun onPause() {
+        webView.onPause()
+        super.onPause()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        webView.saveState(outState)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onBackPressed() {
+        if (::webView.isInitialized && webView.canGoBack()) {
+            webView.goBack()
         } else {
-            delay(75)
-            startModuleWithCheck(moduleId, attempt + 1)
+            super.onBackPressed()
+        }
+    }
+
+    override fun onDestroy() {
+        if (::webView.isInitialized) {
+            webView.apply {
+                stopLoading()
+                onPause()
+                webChromeClient = null
+                webViewClient = null
+                destroy()
+            }
+        }
+        super.onDestroy()
+    }
+
+    private fun hideSystemBars() {
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.systemBars())
         }
     }
 }

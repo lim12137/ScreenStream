@@ -8,6 +8,10 @@
 - UI/UX implementation should be delegated to a dedicated designer sub-agent when delegation is available.
 - Keep only orchestration, prioritization, review, and final judgment in the main model unless the user explicitly asks otherwise.
 - When sub-agents are used, give them narrow ownership and avoid overlapping file edits.
+- If an implementation depends on understanding the current repo structure or runtime behavior, do not dispatch parallel explorer and implementer agents that can race on assumptions.
+- In those cases, either:
+  - use one sub-agent that first inspects the current structure and then implements sequentially, or
+  - run a read-only reconnaissance sub-agent first and wait for its conclusion before dispatching the implementation sub-agent.
 
 ## Purpose & Modes
 ScreenStream streams Android screen and audio.

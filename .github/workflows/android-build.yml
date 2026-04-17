@@ -2,10 +2,8 @@ name: Android Build
 
 on:
   push:
-    branches:
-      - master
-      - main
-  pull_request:
+    tags:
+      - "v*"
   workflow_dispatch:
 
 jobs:

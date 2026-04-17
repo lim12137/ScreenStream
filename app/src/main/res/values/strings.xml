@@ -23,6 +23,9 @@
     <string name="app_tab_exit">Exit</string>
 
     <string name="app_tab_stream_select_mode">Select stream mode:</string>
+    <string name="app_tab_stream_local_mode_title">Local network stream only</string>
+    <string name="app_tab_stream_local_mode_summary">This build keeps a single local streaming mode: HTTP + MJPEG for browser access on the same network.</string>
+    <string name="app_tab_stream_module_loading">Preparing local stream module...</string>
 
     <string name="app_permission_required_title">Permission required</string>
     <string name="app_permission_allow_notifications">Application requires permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications.</string>

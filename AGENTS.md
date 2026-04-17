@@ -1,41 +1,48 @@
 # Repository Guidelines
 
+## Collaboration Mode
+- Use team mode for substantial work.
+- The main model acts as the orchestrator: gather context, assign bounded subtasks, integrate results, and make final technical decisions.
+- UI/UX implementation should be delegated to a dedicated designer sub-agent when delegation is available.
+- Keep non-UI architecture, build-system changes, integration, and verification under the orchestrator unless explicitly reassigned.
+- When sub-agents are used, give them narrow ownership and avoid overlapping file edits.
+
 ## Purpose & Modes
-ScreenStream streams Android screen + audio. Modes: Local (MJPEG), Global (WebRTC), and RTSP. RTSP has two sub‑modes: server (default) hosts this device; client connects to an external RTSP media server. F‑Droid builds are ad‑free and exclude WebRTC; PlayStore builds include ads + WebRTC.
+ScreenStream streams Android screen and audio.
+Original upstream modes are Local (MJPEG), Global (WebRTC), and RTSP.
+This workspace is being adapted toward a local-network-first MJPEG build, but upstream multi-mode structure still exists in parts of the codebase until the refactor is finished.
 
 ## Project Structure & Modules
-- `app`: Compose UI shell, DI wiring, and flavors (`app/src/PlayStore` adds ads/WebRTC; `app/src/FDroid` strips them).
+- `app`: Compose UI shell, DI wiring, and product flavors.
 - `common`: shared UI, preferences helpers, logging, utilities.
 - `mjpeg`: embedded Ktor HTTP server for local MJPEG streaming.
 - `rtsp`: RTSP server/client implementation and settings.
-- `webrtc`: WebRTC streaming (PlayStore flavor only).
+- `webrtc`: WebRTC streaming.
 
 ## Build & SDK Baseline
-- Kotlin `explicitApi()` with JVM toolchain 17.
-- SDKs: min 23, target/compile 36; build tools 36.0.0; NDK 28.2.13676358.
-- `./gradlew :app:assembleFDroidDebug` — build the F-Droid debug APK.
-- `./gradlew :app:assemblePlayStoreDebug` — build the Play Store debug APK.
-- Build types: release enables minify/shrink + Crashlytics mapping upload.
-- Flavors: `FDroid`, `PlayStore`. PlayStore reads ads from `local.properties` (`ad.pubId`, `ad.unitIds`).
+- Kotlin uses `explicitApi()` with JVM toolchain 17.
+- SDKs: min 23, target/compile 36.
+- Main verification target during the refactor is `./gradlew :app:assembleFDroidDebug`.
+- Build types: release enables minify/shrink and Crashlytics mapping upload.
+- Flavors: `FDroid`, `PlayStore`.
 
 ## Coding Style & Naming Conventions
-Kotlin follows the official style (`kotlin.code.style=official`) and uses explicit API mode in the app module; keep public APIs explicit and well-typed.
-Prefer 4-space indentation and Android Studio formatting.
-Product flavors are PascalCase (`FDroid`, `PlayStore`), and module names are lowercase (`common`, `mjpeg`, `rtsp`, `webrtc`).
+- Follow official Kotlin style and keep public APIs explicit and well-typed.
+- Use 4-space indentation and standard Android Studio formatting.
+- Product flavors are PascalCase (`FDroid`, `PlayStore`).
+- Module names are lowercase (`app`, `common`, `mjpeg`, `rtsp`, `webrtc`).
 
-## Localization Rules (Strings)
-- English `values/strings.xml` is the source of truth for **key order and blank lines**.
-- Every locale file must mirror English key order **and** blank-line placement between `<string>` tags exactly.
-- Strings live in module `res/values` (app, mjpeg, rtsp, webrtc). Avoid hardcoded literals.
-- Use compact AOSP‑style UI terms; prefer “stream”/“device”. Use loanwords when standard, otherwise localize.
+## Localization Rules
+- English `values/strings.xml` is the source of truth for key order and blank lines.
+- Locale files should mirror English key order and blank-line placement.
+- Strings live in module-local `res/values` directories. Avoid hardcoded literals in UI code.
 
 ## Commit & Pull Request Guidelines
-Recent commits use short, sentence-style summaries (e.g., “Readme update”, “Minor updates”).
-Follow that pattern and keep messages scoped to the change.
+- Use short, sentence-style commit summaries scoped to the change.
+- Keep refactor commits narrow when removing protocols or simplifying UI.
 
 ## Security & Configuration Tips
-`local.properties` is read for Play Store ad identifiers; keep it uncommitted.
-The debug keystore is checked in for convenience; do not use it for release builds.
-Keep WebRTC signaling endpoints configurable; never hardcode credentials.
-
-When debugging crashes/ANRs, always use the Firebase Crashlytics MCP tools to fetch the latest issues and details before proposing code changes.
+- `local.properties` may contain local Play Store configuration. Do not commit secrets.
+- The checked-in debug keystore is for local development only.
+- Keep WebRTC signaling endpoints configurable; never hardcode credentials.
+- When debugging crashes or ANRs in PlayStore variants, use Crashlytics data before proposing fixes.

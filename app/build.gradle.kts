@@ -14,6 +14,28 @@ kotlin {
     jvmToolchain(17)
 }
 
+val localProps = Properties().apply {
+    val localPropertiesFile = File(rootProject.rootDir, "local.properties")
+    if (localPropertiesFile.exists() && localPropertiesFile.isFile) {
+        localPropertiesFile.inputStream().use(::load)
+    }
+}
+
+fun readSecret(name: String, envName: String): String? =
+    providers.gradleProperty(name).orNull
+        ?: localProps.getProperty(name)
+        ?: System.getenv(envName)
+
+val releaseStoreFilePath = readSecret("release.storeFile", "ANDROID_RELEASE_STORE_FILE")
+val releaseStorePassword = readSecret("release.storePassword", "ANDROID_RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = readSecret("release.keyAlias", "ANDROID_RELEASE_KEY_ALIAS")
+val releaseKeyPassword = readSecret("release.keyPassword", "ANDROID_RELEASE_KEY_PASSWORD")
+val hasReleaseSigning =
+    !releaseStoreFilePath.isNullOrBlank() &&
+        !releaseStorePassword.isNullOrBlank() &&
+        !releaseKeyAlias.isNullOrBlank() &&
+        !releaseKeyPassword.isNullOrBlank()
+
 android {
     signingConfigs {
         getByName("debug") {
@@ -24,6 +46,15 @@ android {
         }
         //SHA1: 89:5F:34:AB:7B:EB:6B:A0:65:4E:56:CB:E4:8D:E3:22:25:29:22:FD
         //SHA256: 67:80:30:DE:17:FD:A4:B8:B2:1D:9F:D3:57:0D:5C:FB:2D:57:86:7C:46:51:70:06:22:3D:7D:1F:B0:7F:39:AC
+
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseStoreFilePath!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
 
     namespace = "info.dvkr.screenstream"
@@ -60,6 +91,9 @@ android {
             applicationIdSuffix = ".dev"
         }
         release {
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -79,8 +113,6 @@ android {
         }
         create("PlayStore") {
             dimension = "Default"
-            val localProps = Properties()
-            File(rootProject.rootDir, "local.properties").apply { if (exists() && isFile) inputStream().use { localProps.load(it) } }
             manifestPlaceholders += mapOf("adMobPubId" to localProps.getProperty("ad.pubId", "\"\""))
             buildConfigField("String", "AD_UNIT_IDS", localProps.getProperty("ad.unitIds", "\"[]\""))
             configure<CrashlyticsExtension> {

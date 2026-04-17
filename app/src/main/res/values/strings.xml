@@ -26,6 +26,23 @@
     <string name="app_tab_stream_local_mode_title">Local network stream only</string>
     <string name="app_tab_stream_local_mode_summary">This build keeps a single local streaming mode: HTTP + MJPEG for browser access on the same network.</string>
     <string name="app_tab_stream_module_loading">Preparing local stream module...</string>
+    <string name="app_tab_stream_harmony_title">HarmonyOS 4.2 setup guide</string>
+    <string name="app_tab_stream_harmony_summary">Before first use, complete these settings to reduce background cleanup, screen capture interruptions, and unexpected stream stops.</string>
+    <string name="app_tab_stream_harmony_checklist_title">Recommended before you start</string>
+    <string name="app_tab_stream_harmony_step_1_title">Allow notifications</string>
+    <string name="app_tab_stream_harmony_step_1_summary">The app needs notifications to keep the foreground streaming service alive.</string>
+    <string name="app_tab_stream_harmony_step_2_title">Allow screen capture</string>
+    <string name="app_tab_stream_harmony_step_2_summary">When you start streaming, accept the system screen capture request and avoid canceling it.</string>
+    <string name="app_tab_stream_harmony_step_3_title">Turn off automatic battery restrictions</string>
+    <string name="app_tab_stream_harmony_step_3_summary">Set battery management to unrestricted or allow the app to stay active in the background.</string>
+    <string name="app_tab_stream_harmony_step_4_title">Lock the app in recent tasks</string>
+    <string name="app_tab_stream_harmony_step_4_summary">If HarmonyOS provides task locking or protected apps, enable it to reduce background cleanup.</string>
+    <string name="app_tab_stream_harmony_recovery_title">Background running tip</string>
+    <string name="app_tab_stream_harmony_recovery_summary">If streaming stops after locking the screen, switching apps, or waiting a few minutes, check notifications, battery management, and background activity settings first.</string>
+    <string name="app_tab_stream_harmony_open_app_settings">Open app settings</string>
+    <string name="app_tab_stream_harmony_acknowledge">I understand</string>
+    <string name="app_tab_stream_harmony_badge_recommended">Recommended</string>
+    <string name="app_tab_stream_harmony_badge_done">Reviewed</string>
 
     <string name="app_permission_required_title">Permission required</string>
     <string name="app_permission_allow_notifications">Application requires permission to send notifications to be able to start streaming service.\n\nPlease allow sending notifications.</string>

@@ -2,9 +2,11 @@
 
 ## Collaboration Mode
 - Use team mode for substantial work.
-- The main model acts as the orchestrator: gather context, assign bounded subtasks, integrate results, and make final technical decisions.
+- The main model acts only as the orchestrator: gather context, assign bounded subtasks, integrate results, and make final technical decisions.
+- The main model should avoid doing implementation work directly when a bounded sub-agent can own it safely.
+- Default rule for this repository: concrete coding, UI work, docs edits, cleanup, verification, and research should be delegated to sub-agents whenever possible.
 - UI/UX implementation should be delegated to a dedicated designer sub-agent when delegation is available.
-- Keep non-UI architecture, build-system changes, integration, and verification under the orchestrator unless explicitly reassigned.
+- Keep only orchestration, prioritization, review, and final judgment in the main model unless the user explicitly asks otherwise.
 - When sub-agents are used, give them narrow ownership and avoid overlapping file edits.
 
 ## Purpose & Modes

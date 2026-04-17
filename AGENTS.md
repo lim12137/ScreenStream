@@ -9,20 +9,21 @@
 
 ## Purpose & Modes
 ScreenStream streams Android screen and audio.
-Original upstream modes are Local (MJPEG), Global (WebRTC), and RTSP.
-This workspace is being adapted toward a local-network-first MJPEG build, but upstream multi-mode structure still exists in parts of the codebase until the refactor is finished.
+Upstream originally supported Local (MJPEG), Global (WebRTC), and RTSP.
+This workspace is now being actively narrowed to a local-network-first MJPEG build.
+Treat the product target as single-mode local streaming even if some upstream RTSP/WebRTC source trees still remain in the repository during cleanup.
 
 ## Project Structure & Modules
 - `app`: Compose UI shell, DI wiring, and product flavors.
 - `common`: shared UI, preferences helpers, logging, utilities.
 - `mjpeg`: embedded Ktor HTTP server for local MJPEG streaming.
-- `rtsp`: RTSP server/client implementation and settings.
-- `webrtc`: WebRTC streaming.
+- `rtsp`: upstream RTSP implementation retained as cleanup residue unless explicitly removed.
+- `webrtc`: upstream WebRTC implementation retained as cleanup residue unless explicitly removed.
 
 ## Build & SDK Baseline
 - Kotlin uses `explicitApi()` with JVM toolchain 17.
 - SDKs: min 23, target/compile 36.
-- Main verification target during the refactor is `./gradlew :app:assembleFDroidDebug`.
+- Main verification targets are `./gradlew :app:testFDroidDebugUnitTest` and `./gradlew :app:assembleFDroidDebug`.
 - Build types: release enables minify/shrink and Crashlytics mapping upload.
 - Flavors: `FDroid`, `PlayStore`.
 
@@ -39,10 +40,10 @@ This workspace is being adapted toward a local-network-first MJPEG build, but up
 
 ## Commit & Pull Request Guidelines
 - Use short, sentence-style commit summaries scoped to the change.
-- Keep refactor commits narrow when removing protocols or simplifying UI.
+- Keep refactor commits narrow when removing upstream protocol paths or simplifying UI.
 
 ## Security & Configuration Tips
 - `local.properties` may contain local Play Store configuration. Do not commit secrets.
 - The checked-in debug keystore is for local development only.
-- Keep WebRTC signaling endpoints configurable; never hardcode credentials.
+- Do not reintroduce external signaling or cloud relay assumptions unless explicitly requested.
 - When debugging crashes or ANRs in PlayStore variants, use Crashlytics data before proposing fixes.

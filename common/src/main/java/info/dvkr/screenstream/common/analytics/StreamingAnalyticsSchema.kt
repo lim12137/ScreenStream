@@ -27,9 +27,10 @@ public object StreamingAnalyticsSchema {
 
 public enum class StreamMode(public val analyticsValue: String) {
     MJPEG("mjpeg"),
-    RTSP_SERVER("rtsp_server"),
-    RTSP_CLIENT("rtsp_client"),
-    WEBRTC("webrtc")
+    // Analytics stays single-product during the MJPEG-first refactor, so legacy modules collapse to the same schema value.
+    RTSP_SERVER("mjpeg"),
+    RTSP_CLIENT("mjpeg"),
+    WEBRTC("mjpeg")
 }
 
 public enum class EntryPoint(public val analyticsValue: String) {

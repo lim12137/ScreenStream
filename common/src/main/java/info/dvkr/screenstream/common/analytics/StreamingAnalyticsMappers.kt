@@ -34,11 +34,12 @@ public object StreamingAnalyticsMappers {
             normalized.contains("screenoff") -> StopReasonGroup.SYSTEM
             normalized.contains("projectioncoordinator.onstop") -> StopReasonGroup.SYSTEM
             normalized.contains("configurationchange") -> StopReasonGroup.SYSTEM
-            normalized.contains("modechanged") -> StopReasonGroup.SYSTEM
-            normalized.contains("rtspclientdisconnect") -> StopReasonGroup.SYSTEM
             normalized.contains("destroy") -> StopReasonGroup.SYSTEM
+            normalized.contains("recovererror") -> StopReasonGroup.ERROR
             normalized.contains("capturefatal") -> StopReasonGroup.ERROR
-            normalized.contains("socketsignalingerror") -> StopReasonGroup.ERROR
+            normalized.contains("startprojectionfatal") -> StopReasonGroup.ERROR
+            normalized.contains("handlemessageexception") -> StopReasonGroup.ERROR
+            normalized.contains("internalerror") -> StopReasonGroup.ERROR
             normalized.contains("error") -> StopReasonGroup.ERROR
             normalized.contains("exception") -> StopReasonGroup.ERROR
             normalized.contains("fatal") -> StopReasonGroup.ERROR

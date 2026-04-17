@@ -113,11 +113,11 @@ internal class MjpegStreamingService(
         )
     }
 
-    // All Volatiles vars must be write on this (WebRTC-HT) thread
+    // All volatile vars must be written on this MJPEG-HT thread.
     @Volatile private var wakeLock: PowerManager.WakeLock? = null
-    // All Volatiles vars must be write on this (WebRTC-HT) thread
+    // All volatile vars must be written on this MJPEG-HT thread.
 
-    // All vars must be read/write on this (WebRTC-HT) thread
+    // All vars below must be read and written on this MJPEG-HT thread.
     private var startBitmap: Bitmap? = null
     private var pendingServer: Boolean = true
     private var deviceConfiguration: Configuration = Configuration(service.resources.configuration)
@@ -132,7 +132,7 @@ internal class MjpegStreamingService(
     private var bitmapCapture: BitmapCapture? = null
     private var currentError: MjpegError? = null
     private var previousError: MjpegError? = null
-    // All vars must be read/write on this (WebRTC-HT) thread
+    // All vars above must be read and written on this MJPEG-HT thread.
 
     internal sealed class InternalEvent(priority: Int) : MjpegEvent(priority) {
         data class InitState(val clearIntent: Boolean = true) : InternalEvent(Priority.RESTART_IGNORE)

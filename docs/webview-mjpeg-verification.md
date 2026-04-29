@@ -44,6 +44,12 @@ $env:PATH="D:\JAVA\jdk-17\bin;" + $env:PATH
 
 ## 5) GitHub Actions
 
-- Run URL（占位，推送后更新）：TBD
-- 最终状态：TBD
-
+- Run URL（最终验收）：
+  - https://github.com/lim12137/ScreenStream/actions/runs/25118982163
+- 最终状态：Success
+- 覆盖任务：
+  - `build-fdroid-debug`
+  - `build-fdroid-release`
+- 说明：
+  - 第 4 节本地失败原因为 Maven Central 连接超时（外部网络问题），不属于代码正确性回归。
+  - 本次改动最终以 GitHub Actions 成功结果作为验收结论。

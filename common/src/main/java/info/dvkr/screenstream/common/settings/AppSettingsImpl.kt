@@ -59,6 +59,9 @@ internal class AppSettingsImpl(context: Context) : AppSettings {
 
                 if (newSettings.screenCaptureEducationCompleted != AppSettings.Default.SCREEN_CAPTURE_EDUCATION_COMPLETED)
                     set(AppSettings.Key.SCREEN_CAPTURE_EDUCATION_COMPLETED, newSettings.screenCaptureEducationCompleted)
+
+                if (newSettings.webEntryUrl != AppSettings.Default.WEB_ENTRY_URL)
+                    set(AppSettings.Key.WEB_ENTRY_URL, newSettings.webEntryUrl)
             }
         }
         Unit
@@ -69,5 +72,6 @@ internal class AppSettingsImpl(context: Context) : AppSettings {
         nightMode = this[AppSettings.Key.NIGHT_MODE] ?: AppSettings.Default.NIGHT_MODE,
         dynamicTheme = this[AppSettings.Key.DYNAMIC_THEME] ?: AppSettings.Default.DYNAMIC_THEME,
         screenCaptureEducationCompleted = this[AppSettings.Key.SCREEN_CAPTURE_EDUCATION_COMPLETED] ?: AppSettings.Default.SCREEN_CAPTURE_EDUCATION_COMPLETED,
+        webEntryUrl = this[AppSettings.Key.WEB_ENTRY_URL] ?: AppSettings.Default.WEB_ENTRY_URL,
     )
 }

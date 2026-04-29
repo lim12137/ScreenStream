@@ -127,6 +127,7 @@ internal class MjpegStreamingService(
     private var traffic: List<MjpegState.TrafficPoint> = emptyList()
     private var isStreaming: Boolean = false
     private var waitingForPermission: Boolean = false
+    private var webViewStreaming: Boolean = false
     private var mediaProjectionIntent: Intent? = null
     private var mediaProjection: MediaProjection? = null
     private var bitmapCapture: BitmapCapture? = null
@@ -338,6 +339,7 @@ internal class MjpegStreamingService(
                 slowClients = emptyList()
                 isStreaming = false
                 waitingForPermission = false
+                webViewStreaming = false
                 if (event.clearIntent) mediaProjectionIntent = null
                 mediaProjection = null
                 bitmapCapture = null
@@ -382,12 +384,7 @@ internal class MjpegStreamingService(
             is InternalEvent.StartStopFromWebPage -> when {
                 isStreaming -> sendEvent(MjpegEvent.Intentable.StopStream("StartStopFromWebPage"))
                 pendingServer.not() && currentError == null -> {
-                    sessionAnalyticsTracker.onStartAttempt(
-                        entryPoint = EntryPoint.WEB,
-                        usedCachedPermission = mediaProjectionIntent != null,
-                        permissionEducationShown = false
-                    )
-                    waitingForPermission = true
+                    sendEvent(MjpegEvent.StartWebViewStream)
                 }
             }
 
@@ -411,6 +408,7 @@ internal class MjpegStreamingService(
             }
 
             is MjpegEvent.StartProjection -> {
+                webViewStreaming = false
                 waitingForPermission = false
                 XLog.i(getLog("MjpegEvent.StartProjection", "SP_TRACE route=preflight_v1 stage=async_start preflight=${event.foregroundStartProcessed} preflightError=${event.foregroundStartError?.javaClass?.simpleName ?: "none"} pendingServer=$pendingServer isStreaming=$isStreaming cachedIntent=${mediaProjectionIntent != null}"))
 
@@ -541,6 +539,21 @@ internal class MjpegStreamingService(
                         }
                         currentError = cause as? MjpegError ?: MjpegError.UnknownError(cause)
                     }
+                }
+            }
+            MjpegEvent.StartWebViewStream -> {
+                waitingForPermission = false
+                if (pendingServer) return
+                if (isStreaming) return
+                webViewStreaming = true
+                isStreaming = true
+                currentError = null
+                sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
+            }
+
+            is MjpegEvent.WebViewFrame -> {
+                if (isStreaming && webViewStreaming) {
+                    bitmapStateFlow.value = event.bitmap
                 }
             }
 
@@ -678,7 +691,7 @@ internal class MjpegStreamingService(
         }
 
         if (wasStreaming) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            if (!webViewStreaming && Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 service.unregisterComponentCallbacks(componentCallback)
             }
             bitmapCapture?.destroy()
@@ -688,6 +701,7 @@ internal class MjpegStreamingService(
             projectionCoordinator.stop()
 
             isStreaming = false
+            webViewStreaming = false
         }
 
         if (wasStreaming) {

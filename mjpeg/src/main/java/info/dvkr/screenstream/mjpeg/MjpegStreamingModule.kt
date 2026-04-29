@@ -3,6 +3,7 @@ package info.dvkr.screenstream.mjpeg
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Looper
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
@@ -176,6 +177,24 @@ public class MjpegStreamingModule : StreamingModule {
 
     override fun stopStream(reason: String) {
         XLog.d(getLog("stopStream", "reason: $reason"))
+        sendEvent(MjpegEvent.Intentable.StopStream(reason))
+    }
+
+    @MainThread
+    public fun startWebViewStreaming() {
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+        sendEvent(MjpegEvent.StartWebViewStream)
+    }
+
+    @MainThread
+    public fun submitWebViewFrame(bitmap: Bitmap) {
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
+        sendEvent(MjpegEvent.WebViewFrame(bitmap))
+    }
+
+    @MainThread
+    public fun stopWebViewStreaming(reason: String) {
+        check(Looper.getMainLooper().isCurrentThread) { "Only main thread allowed" }
         sendEvent(MjpegEvent.Intentable.StopStream(reason))
     }
 

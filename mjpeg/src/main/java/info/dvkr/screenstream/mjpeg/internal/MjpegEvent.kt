@@ -2,6 +2,7 @@ package info.dvkr.screenstream.mjpeg.internal
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Parcelable
 import info.dvkr.screenstream.mjpeg.MjpegModuleService
@@ -39,5 +40,7 @@ internal open class MjpegEvent(val priority: Int) {
     internal data class StartProjection(
         val intent: Intent, val foregroundStartProcessed: Boolean = false, val foregroundStartError: Throwable? = null
     ) : MjpegEvent(Priority.START_PROJECTION)
+    internal data object StartWebViewStream : MjpegEvent(Priority.START_PROJECTION)
+    internal data class WebViewFrame(val bitmap: Bitmap) : MjpegEvent(Priority.RESTART_IGNORE)
     internal data object CreateNewPin : MjpegEvent(Priority.DESTROY_IGNORE)
 }

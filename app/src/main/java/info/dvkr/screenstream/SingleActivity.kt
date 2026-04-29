@@ -5,9 +5,13 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.text.InputType
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -28,7 +32,9 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
+import info.dvkr.screenstream.common.module.StreamingModuleManager
 import info.dvkr.screenstream.common.settings.AppSettings
+import info.dvkr.screenstream.mjpeg.MjpegStreamingModule
 import info.dvkr.screenstream.ui.enableEdgeToEdge
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
@@ -41,8 +47,13 @@ public class SingleActivity : AppUpdateActivity() {
 
     private lateinit var webView: WebView
     private val appSettings: AppSettings by lazy { get() }
+    private val streamingModuleManager: StreamingModuleManager by lazy { get() }
     private var currentEntryUrl: String = BuildConfig.LAUNCH_URL
+    private var webViewFrameLoopStarted: Boolean = false
+    private val webViewFrameHandler = Handler(Looper.getMainLooper())
+    private val webViewFrameIntervalMs: Long = 100L
     private var pendingWebPermissionRequest: PermissionRequest? = null
+    private var streamingModule: MjpegStreamingModule? = null
     private val recordAudioPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         val request = pendingWebPermissionRequest ?: return@registerForActivityResult
         if (isGranted) request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) else request.deny()
@@ -98,6 +109,7 @@ public class SingleActivity : AppUpdateActivity() {
 
         setContentView(webView)
         hideSystemBars()
+        startWebViewMjpegStreaming()
 
         if (savedInstanceState == null) {
             webView.loadUrl(currentEntryUrl)
@@ -139,6 +151,9 @@ public class SingleActivity : AppUpdateActivity() {
     }
 
     override fun onDestroy() {
+        stopWebViewFrameLoop()
+        streamingModule?.stopWebViewStreaming("SingleActivity.onDestroy")
+        streamingModule = null
         pendingWebPermissionRequest?.deny()
         pendingWebPermissionRequest = null
         if (::webView.isInitialized) {
@@ -151,6 +166,50 @@ public class SingleActivity : AppUpdateActivity() {
             }
         }
         super.onDestroy()
+    }
+
+    private fun startWebViewMjpegStreaming() {
+        lifecycleScope.launch {
+            runCatching {
+                streamingModuleManager.startModule(MjpegStreamingModule.Id, this@SingleActivity)
+                val module = streamingModuleManager.modules.firstOrNull { it.id == MjpegStreamingModule.Id } as? MjpegStreamingModule
+                streamingModule = module
+                module?.startWebViewStreaming()
+                startWebViewFrameLoop()
+            }.onFailure {
+                XLog.e(getLog("startWebViewMjpegStreaming"), it)
+            }
+        }
+    }
+
+    private fun startWebViewFrameLoop() {
+        if (webViewFrameLoopStarted) return
+        webViewFrameLoopStarted = true
+        webViewFrameHandler.post(object : Runnable {
+            override fun run() {
+                if (!webViewFrameLoopStarted) return
+                pushWebViewFrame()
+                webViewFrameHandler.postDelayed(this, webViewFrameIntervalMs)
+            }
+        })
+    }
+
+    private fun stopWebViewFrameLoop() {
+        webViewFrameLoopStarted = false
+        webViewFrameHandler.removeCallbacksAndMessages(null)
+    }
+
+    private fun pushWebViewFrame() {
+        val module = streamingModule ?: return
+        if (::webView.isInitialized.not()) return
+        val width = webView.width
+        val height = webView.height
+        if (width <= 0 || height <= 0) return
+
+        val bitmap = runCatching { Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888) }.getOrNull() ?: return
+        val canvas = Canvas(bitmap)
+        webView.draw(canvas)
+        module.submitWebViewFrame(bitmap)
     }
 
     private fun showWebEntryUrlDialog() {

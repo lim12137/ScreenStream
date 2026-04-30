@@ -1,54 +1,66 @@
-# 主控端逻辑边界说明
+# 主控端与客户端并行边界说明
 
-## 1) 当前现状
+## 1) 当前边界
 
 - 当前宿主入口是 `app/src/main/java/info/dvkr/screenstream/SingleActivity.kt`。
-- `SingleActivity` 已经同时承担了：
+- `SingleActivity` 已经承担了：
   - `Intent` 命令入口解析
   - 房间/目标切换
   - WebView 宿主容器搭建
   - 前后台生命周期处理
   - MJPEG 模块启动与 WebView 帧推送
-- 会话状态机已经在 `common/src/main/java/info/dvkr/screenstream/common/session/MeetingSessionCoordinator.kt` 中单独存在，宿主层只是调用它。
-- `mjpeg/src/main/assets/index.html` 是 WebView 内容页，当前主要负责页面渲染、WebSocket 连接、PIN、重连和页面内展示，不是 Android 宿主层。
+- 会话状态机已经在 `common/src/main/java/info/dvkr/screenstream/common/session/MeetingSessionCoordinator.kt` 中单独存在，宿主层只负责调用。
+- `mjpeg/src/main/assets/index.html` 是客户端内容页，当前主要负责页面渲染、WebSocket 连接、PIN、重连、回退和页面内展示，不是 Android 宿主层。
 
-## 2) 已确认问题 / 缺口
+## 2) 主控端 V1 最小切片
 
-- 目前缺口不是“没有主控逻辑”，而是“主控逻辑的边界还没有完全收口”。
-- 现在已经有宿主侧主控入口，但边界需要明确成一条线：
-  - 宿主层负责决定房间、目标、生命周期和模块启停
-  - 页面层只负责展示与页面内交互
-- 如果把主控逻辑继续下沉到 `mjpeg/index.html`，会把 Android 侧能力拆散到 WebView 里，后续会出现职责重叠和恢复逻辑不一致的问题。
+主控端只保留“宿主真值”能力，不把控制逻辑下沉到页面。
 
-## 3) 为什么主控端逻辑应落在 `app/SingleActivity` 宿主层，而不是 `mjpeg/index.html`
+| 最小切片 | 具体职责 | 现有落点 |
+| --- | --- | --- |
+| 宿主命令入口 | 接收开始房间、切换目标、结束房间 | `SingleActivity.getStartRoomIntent(...)` / `getSwitchTargetIntent(...)` / `getEndRoomIntent(...)` |
+| 宿主状态桥 | 把宿主事件翻译成会话更新 | `SingleActivityMeetingHost` |
+| 会话真值 | 维护房间、目标、前后台状态机 | `MeetingSessionCoordinator` |
+| 原生壳能力 | 管理生命周期、权限、WebView、系统栏、流启动/停止 | `SingleActivity` |
 
-- `Intent` 路由只能在宿主层完成，`index.html` 不能接管 `getStartRoomIntent`、`getSwitchTargetIntent`、`getEndRoomIntent` 这类入口。
-- `onNewIntent`、`onResume`、`onPause`、`onStop`、`onDestroy` 都是 Android 宿主生命周期，页面层无法成为可靠真值来源。
-- `SingleActivity` 需要直接控制 WebView、系统栏、权限请求和模块启停，这些都属于原生壳职责，不适合放进 HTML。
-- `MeetingSessionCoordinator` 已经是 native 状态机，主控逻辑继续放在宿主层，才能保证“状态机 + 生命周期 + 页面加载”共用同一条状态链。
-- `index.html` 即使能通过 JS 表现出控制面，也只能算页面内状态，不能替代宿主层的权限、任务栈和恢复逻辑。
+- 主控端的最小目标是跑通“开始 - 切换 - 结束 - 恢复”闭环。
+- 主控端不承担页面渲染细节，也不把状态机搬进 `index.html`。
 
-## 4) 现有可复用入口清单
+## 3) 客户端 V1 继续完善的最小切片
 
-| 入口 | 位置 | 用途 | 复用建议 |
-| --- | --- | --- | --- |
-| room intent | `SingleActivity.getStartRoomIntent(...)` / `getSwitchTargetIntent(...)` / `getEndRoomIntent(...)` | 对外提供房间开始、切目标、结束的宿主命令入口 | 继续作为主控入口，不新增页面侧路由 |
-| `meetingHost` | `SingleActivityMeetingHost` | 把宿主事件翻译成会话更新 | 继续作为 `SingleActivity` 的主控适配层 |
-| `coordinator` | `MeetingSessionCoordinator` | 维护房间/目标/前后台状态机 | 保持为单一状态真值来源 |
-| `mjpeg` module | `MjpegStreamingModule` 及其流服务 | 负责 MJPEG 流和 WebView 帧通道 | 只承接流与帧，不承接主控状态 |
+这里的“客户端”指 `mjpeg/src/main/assets/index.html` 这一侧的 WebView/H5 内容端。
 
-## 5) 下一步主控端逻辑的最小范围建议
+| 最小切片 | 具体职责 |
+| --- | --- |
+| 页面渲染 | 负责流页面、状态区、提示区、按钮区的视觉输出 |
+| 连接管理 | 负责 WebSocket 连接、heartbeat、重连、恢复提示 |
+| 访问控制 | 负责 PIN 输入、校验结果展示、封禁/拒绝提示 |
+| 画面承载 | 负责 MJPEG 画面展示、JPEG 回退、可选的 PiP / 全屏控制 |
 
-- 只在 `app/SingleActivity` 宿主层继续补主控逻辑。
-- 继续复用现有 `meetingHost + coordinator` 链路，不把状态机搬进 `index.html`。
-- 若要新增主控操作，优先加到 `SingleActivity` 的原生顶栏或宿主菜单里，再映射到现有 room intent。
-- `mjpeg` 只保留流、帧、WebSocket 和页面内容相关能力，不扩展成房间控制中心。
-- 新增逻辑以“能跑通宿主主控闭环”为最小目标，不做跨层重构。
+- 客户端 V1 继续完善的边界是“把连接和展示做稳”，不是“接管主控权”。
+- 客户端只消费宿主下发的状态和地址，不定义房间真值。
+- 客户端可以继续增强页面体验，但不能新增一套和宿主并行的控制状态机。
 
-## 6) 暂不做的内容
+## 4) 两条线的共享复用点
+
+| 共享点 | 主控端复用方式 | 客户端复用方式 |
+| --- | --- | --- |
+| 房间 / 目标 / 入口地址 | 由 `SingleActivity` 和 `MeetingSessionCoordinator` 统一管理 | 作为页面连接和显示所需参数使用 |
+| 会话状态 | 作为唯一真值来源 | 作为 UI 状态、提示文案和重连状态来源 |
+| MJPEG 通道 | 通过 `MjpegStreamingModule` 启停流与帧推送 | 通过 WebSocket / 画面地址接收流 |
+| 状态枚举与消息类型 | 通过宿主事件和更新对象流转 | 通过页面消息处理、错误提示和恢复逻辑消费 |
+
+## 5) 当前明确不做的内容
 
 - 不把主控逻辑迁移到 `mjpeg/src/main/assets/index.html`。
 - 不在页面层新增一套房间状态机。
+- 不让客户端接管宿主生命周期、权限、任务栈或系统栏控制。
 - 不重写 `mjpeg` 模块的流模型或事件模型。
 - 不做 WebRTC / RTSP 相关回归性改造。
-- 不做与本次主控边界无关的 UI 重构或业务代码改动。
+- 不做与本次边界无关的 UI 重构或业务代码改动。
+
+## 6) 结论
+
+- 主控端 V1 和客户端 V1 继续并行推进，但边界是分开的。
+- 主控端先稳住宿主真值和命令闭环，客户端继续补连接、展示和恢复能力。
+- 两条线只共享状态与通道，不共享控制职责。

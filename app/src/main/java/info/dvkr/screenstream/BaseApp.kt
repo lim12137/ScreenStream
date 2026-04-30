@@ -7,7 +7,11 @@ import android.os.StrictMode
 import com.elvishew.xlog.LogConfiguration
 import com.jakewharton.processphoenix.ProcessPhoenix
 import info.dvkr.screenstream.common.analytics.StreamingAnalytics
+import info.dvkr.screenstream.common.controller.ControllerCommandGateway
 import info.dvkr.screenstream.common.notification.NotificationHelper
+import info.dvkr.screenstream.controller.ControllerCommandGatewayImpl
+import info.dvkr.screenstream.controller.ControllerHostLauncher
+import info.dvkr.screenstream.controller.SingleActivityControllerHostLauncher
 import info.dvkr.screenstream.logger.AppLogger
 import info.dvkr.screenstream.notification.NotificationHelperImpl
 import org.koin.android.ext.koin.androidContext
@@ -63,6 +67,8 @@ public abstract class BaseApp : Application() {
             single(createdAtStart = true) { AdMob(get()) }
             single(createdAtStart = true) { AppStreamingAnalytics(get()) } bind (StreamingAnalytics::class)
             single { NotificationHelperImpl(get()) } bind (NotificationHelper::class)
+            single<ControllerHostLauncher> { SingleActivityControllerHostLauncher(get()) }
+            single { ControllerCommandGatewayImpl(get(), get(), get()) } bind (ControllerCommandGateway::class)
         }
 
         startKoin {

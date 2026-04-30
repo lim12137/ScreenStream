@@ -28,6 +28,7 @@ android {
 dependencies {
     api(libs.kotlinReflect)
     api(libs.kotlinx.coroutines.android)
+    api("io.ktor:ktor-server-core:${libs.versions.ktor.get()}")
 
     api(libs.androidx.core.ktx)
     api(libs.androidx.activity.compose)

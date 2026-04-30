@@ -43,6 +43,12 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.controller.ControllerCommand
+import info.dvkr.screenstream.common.controller.ControllerCommandResult
+import info.dvkr.screenstream.common.controller.ControllerCommandSource
+import info.dvkr.screenstream.common.controller.ControllerEndRequest
+import info.dvkr.screenstream.common.controller.ControllerStartRequest
+import info.dvkr.screenstream.common.controller.ControllerSwitchRequest
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModuleManager
 import info.dvkr.screenstream.common.session.HostVisibility
@@ -50,6 +56,7 @@ import info.dvkr.screenstream.common.session.MeetingSessionCoordinator
 import info.dvkr.screenstream.common.session.MeetingSessionEvent
 import info.dvkr.screenstream.common.session.MeetingSessionState
 import info.dvkr.screenstream.common.settings.AppSettings
+import info.dvkr.screenstream.controller.ControllerCommandGatewayImpl
 import info.dvkr.screenstream.mjpeg.MjpegStreamingModule
 import info.dvkr.screenstream.ui.enableEdgeToEdge
 import kotlinx.coroutines.launch
@@ -65,20 +72,65 @@ public class SingleActivity : AppUpdateActivity() {
         private const val EXTRA_ROOM_ID: String = "info.dvkr.screenstream.extra.ROOM_ID"
         private const val EXTRA_TARGET_ID: String = "info.dvkr.screenstream.extra.TARGET_ID"
         private const val EXTRA_ENTRY_URL: String = "info.dvkr.screenstream.extra.ENTRY_URL"
+        private const val EXTRA_COMMAND_ID: String = "info.dvkr.screenstream.extra.COMMAND_ID"
+        private const val EXTRA_CONTROLLER_SESSION_ID: String = "info.dvkr.screenstream.extra.CONTROLLER_SESSION_ID"
+        private const val EXTRA_STATE_VERSION: String = "info.dvkr.screenstream.extra.STATE_VERSION"
+        private const val EXTRA_COMMAND_SOURCE: String = "info.dvkr.screenstream.extra.COMMAND_SOURCE"
         private const val DEFAULT_ROOM_ID: String = "single-activity-room"
 
         internal fun getIntent(context: Context): Intent = Intent(context, SingleActivity::class.java)
+
+        internal fun getIntent(context: Context, command: ControllerCommand): Intent = when (command) {
+            is ControllerStartRequest -> getStartRoomIntent(
+                context = context,
+                roomId = command.roomId,
+                targetId = command.targetId,
+                entryUrl = command.entryUrl,
+                commandId = command.commandId,
+                controllerSessionId = command.controllerSessionId,
+                stateVersion = command.stateVersion,
+                source = command.source,
+            )
+            is ControllerSwitchRequest -> getSwitchTargetIntent(
+                context = context,
+                roomId = command.roomId,
+                targetId = command.nextTargetId,
+                entryUrl = command.nextEntryUrl,
+                commandId = command.commandId,
+                controllerSessionId = command.controllerSessionId,
+                stateVersion = command.stateVersion,
+                source = command.source,
+            )
+            is ControllerEndRequest -> getEndRoomIntent(
+                context = context,
+                roomId = command.roomId,
+                commandId = command.commandId,
+                controllerSessionId = command.controllerSessionId,
+                stateVersion = command.stateVersion,
+                source = command.source,
+            )
+        }
 
         internal fun getStartRoomIntent(
             context: Context,
             roomId: String,
             targetId: String,
             entryUrl: String,
+            commandId: String? = null,
+            controllerSessionId: String? = null,
+            stateVersion: Long? = null,
+            source: ControllerCommandSource = ControllerCommandSource.LOCAL_MANUAL,
         ): Intent = getIntent(context).apply {
             action = ACTION_START_ROOM
             putExtra(EXTRA_ROOM_ID, roomId)
             putExtra(EXTRA_TARGET_ID, targetId)
             putExtra(EXTRA_ENTRY_URL, entryUrl)
+            putCommandMetadata(
+                commandId = commandId,
+                controllerSessionId = controllerSessionId,
+                stateVersion = stateVersion,
+                source = source,
+            )
         }
 
         internal fun getSwitchTargetIntent(
@@ -86,16 +138,51 @@ public class SingleActivity : AppUpdateActivity() {
             roomId: String,
             targetId: String,
             entryUrl: String,
+            commandId: String? = null,
+            controllerSessionId: String? = null,
+            stateVersion: Long? = null,
+            source: ControllerCommandSource = ControllerCommandSource.LOCAL_MANUAL,
         ): Intent = getIntent(context).apply {
             action = ACTION_SWITCH_TARGET
             putExtra(EXTRA_ROOM_ID, roomId)
             putExtra(EXTRA_TARGET_ID, targetId)
             putExtra(EXTRA_ENTRY_URL, entryUrl)
+            putCommandMetadata(
+                commandId = commandId,
+                controllerSessionId = controllerSessionId,
+                stateVersion = stateVersion,
+                source = source,
+            )
         }
 
-        internal fun getEndRoomIntent(context: Context, roomId: String): Intent = getIntent(context).apply {
+        internal fun getEndRoomIntent(
+            context: Context,
+            roomId: String,
+            commandId: String? = null,
+            controllerSessionId: String? = null,
+            stateVersion: Long? = null,
+            source: ControllerCommandSource = ControllerCommandSource.LOCAL_MANUAL,
+        ): Intent = getIntent(context).apply {
             action = ACTION_END_ROOM
             putExtra(EXTRA_ROOM_ID, roomId)
+            putCommandMetadata(
+                commandId = commandId,
+                controllerSessionId = controllerSessionId,
+                stateVersion = stateVersion,
+                source = source,
+            )
+        }
+
+        private fun Intent.putCommandMetadata(
+            commandId: String?,
+            controllerSessionId: String?,
+            stateVersion: Long?,
+            source: ControllerCommandSource,
+        ) {
+            if (commandId != null) putExtra(EXTRA_COMMAND_ID, commandId)
+            if (controllerSessionId != null) putExtra(EXTRA_CONTROLLER_SESSION_ID, controllerSessionId)
+            if (stateVersion != null) putExtra(EXTRA_STATE_VERSION, stateVersion)
+            putExtra(EXTRA_COMMAND_SOURCE, source.name)
         }
     }
 
@@ -117,6 +204,7 @@ public class SingleActivity : AppUpdateActivity() {
     private val appSettings: AppSettings by lazy { get() }
     private val streamingModuleManager: StreamingModuleManager by lazy { get() }
     private val meetingSessionCoordinator: MeetingSessionCoordinator by lazy { get() }
+    private val controllerCommandGateway: ControllerCommandGatewayImpl by lazy { get() }
     private val meetingHost: SingleActivityMeetingHost by lazy { SingleActivityMeetingHost(meetingSessionCoordinator) }
     private var currentEntryUrl: String = BuildConfig.LAUNCH_URL
     private var webViewFrameLoopStarted: Boolean = false
@@ -207,6 +295,7 @@ public class SingleActivity : AppUpdateActivity() {
             update = resolveMeetingIntentUpdate(intent = intent, fallbackEntryUrl = currentEntryUrl),
             loadCurrentTarget = true,
         )
+        startWebViewMjpegStreaming()
         hideSystemBars()
         refreshTopBar()
     }
@@ -214,6 +303,7 @@ public class SingleActivity : AppUpdateActivity() {
     override fun onResume() {
         super.onResume()
         meetingHost.onHostForegrounded()
+        controllerCommandGateway.onMeetingStateObserved()
         webView.onResume()
         hideSystemBars()
         refreshTopBar()
@@ -229,6 +319,7 @@ public class SingleActivity : AppUpdateActivity() {
     override fun onStop() {
         dismissInfoMenu()
         meetingHost.onHostBackgrounded()
+        controllerCommandGateway.onMeetingStateObserved()
         super.onStop()
     }
 
@@ -401,8 +492,13 @@ public class SingleActivity : AppUpdateActivity() {
                 streamingModule = module
                 module?.startWebViewStreaming()
                 startWebViewFrameLoop()
+                controllerCommandGateway.onMeetingStateObserved()
             }.onFailure {
                 XLog.e(getLog("startWebViewMjpegStreaming"), it)
+                controllerCommandGateway.onForegroundStartFailed(
+                    reason = it.message.orEmpty().ifBlank { it.javaClass.simpleName ?: "Foreground start failed" },
+                )
+                refreshTopBar()
             }
         }
     }
@@ -456,8 +552,24 @@ public class SingleActivity : AppUpdateActivity() {
                     }
                 }
                 if (resolvedUrl != currentEntryUrl) {
+                    val command = when (val state = meetingHost.currentState()) {
+                        is MeetingSessionState.Active -> controllerCommandGateway.newLocalSwitchCommand(
+                            roomId = state.roomId,
+                            targetId = resolvedUrl,
+                            entryUrl = resolvedUrl,
+                        )
+
+                        is MeetingSessionState.Ending -> null
+
+                        MeetingSessionState.Idle,
+                        is MeetingSessionState.StartRejected -> controllerCommandGateway.newLocalStartCommand(
+                            roomId = DEFAULT_ROOM_ID,
+                            targetId = resolvedUrl,
+                            entryUrl = resolvedUrl,
+                        )
+                    }
                     applyMeetingUpdate(
-                        update = meetingHost.switchCurrentTarget(entryUrl = resolvedUrl),
+                        update = command?.let(controllerCommandGateway::handleCommandNow)?.toMeetingUpdate(),
                         loadCurrentTarget = true,
                     )
                 }
@@ -514,47 +626,83 @@ public class SingleActivity : AppUpdateActivity() {
 
     private fun resolveLaunchMeetingUpdate(intent: Intent?, fallbackEntryUrl: String): SingleActivityMeetingUpdate {
         val explicitIntentUpdate = resolveMeetingIntentUpdate(intent = intent, fallbackEntryUrl = fallbackEntryUrl)
-        return if (explicitIntentUpdate != null) explicitIntentUpdate else meetingHost.attach(entryUrl = fallbackEntryUrl)
+        if (explicitIntentUpdate != null) return explicitIntentUpdate
+
+        return when (val state = meetingHost.currentState()) {
+            is MeetingSessionState.Active -> SingleActivityMeetingUpdate(
+                state = state,
+                entryUrlToLoad = state.currentTarget.entryUrl,
+            )
+
+            is MeetingSessionState.Ending -> SingleActivityMeetingUpdate(
+                state = state,
+                entryUrlToLoad = state.currentTarget.entryUrl,
+                shouldFinalize = true,
+            )
+
+            MeetingSessionState.Idle,
+            is MeetingSessionState.StartRejected -> SingleActivityMeetingUpdate(
+                state = state,
+                entryUrlToLoad = (state as? MeetingSessionState.StartRejected)?.lastTarget?.entryUrl,
+            )
+        }
     }
 
     private fun resolveMeetingIntentUpdate(intent: Intent?, fallbackEntryUrl: String): SingleActivityMeetingUpdate? {
         val command = parseMeetingCommand(intent = intent, fallbackEntryUrl = fallbackEntryUrl)
-        return when (command) {
-            MeetingCommand.None -> null
-            is MeetingCommand.StartRoom -> meetingHost.startRoom(
-                roomId = command.roomId,
-                targetId = command.targetId,
-                entryUrl = command.entryUrl,
-            )
-            is MeetingCommand.SwitchTarget -> meetingHost.switchTarget(
-                roomId = command.roomId,
-                targetId = command.targetId,
-                entryUrl = command.entryUrl,
-            )
-            is MeetingCommand.EndRoom -> meetingHost.endRoom(roomId = command.roomId)
-        }
+        return command?.let(controllerCommandGateway::handleCommandNow)?.toMeetingUpdate()
     }
 
-    private fun parseMeetingCommand(intent: Intent?, fallbackEntryUrl: String): MeetingCommand {
-        if (intent == null) return MeetingCommand.None
+    private fun parseMeetingCommand(intent: Intent?, fallbackEntryUrl: String): ControllerCommand? {
+        if (intent == null) return null
 
+        val snapshot = controllerCommandGateway.currentSnapshot()
         val roomId = intent.getStringExtra(EXTRA_ROOM_ID).orEmpty().ifBlank { DEFAULT_ROOM_ID }
         val entryUrl = resolveLaunchUrl(intent.getStringExtra(EXTRA_ENTRY_URL).orEmpty().ifBlank { fallbackEntryUrl })
         val targetId = intent.getStringExtra(EXTRA_TARGET_ID).orEmpty().ifBlank { entryUrl }
+        val source = intent.getStringExtra(EXTRA_COMMAND_SOURCE)
+            ?.let(::parseCommandSource)
+            ?: ControllerCommandSource.LOCAL_MANUAL
+        val commandId = intent.getStringExtra(EXTRA_COMMAND_ID).orEmpty().ifBlank {
+            controllerCommandGateway.newCommandId(intent.action.orEmpty().lowercase().ifBlank { "intent-command" })
+        }
+        val controllerSessionId = intent.getStringExtra(EXTRA_CONTROLLER_SESSION_ID).orEmpty().ifBlank {
+            if (source == ControllerCommandSource.CONTROLLER_COMMAND) snapshot.controllerSessionId
+            else controllerCommandGateway.localManualControllerSessionId()
+        }
+        val stateVersion = if (intent.hasExtra(EXTRA_STATE_VERSION)) {
+            intent.getLongExtra(EXTRA_STATE_VERSION, snapshot.stateVersion)
+        } else {
+            snapshot.stateVersion
+        }
 
         return when (intent.action) {
-            ACTION_START_ROOM -> MeetingCommand.StartRoom(
+            ACTION_START_ROOM -> ControllerStartRequest(
+                commandId = commandId,
+                controllerSessionId = controllerSessionId,
+                stateVersion = stateVersion,
                 roomId = roomId,
                 targetId = targetId,
                 entryUrl = entryUrl,
+                source = source,
             )
-            ACTION_SWITCH_TARGET -> MeetingCommand.SwitchTarget(
+            ACTION_SWITCH_TARGET -> ControllerSwitchRequest(
+                commandId = commandId,
+                controllerSessionId = controllerSessionId,
+                stateVersion = stateVersion,
                 roomId = roomId,
-                targetId = targetId,
-                entryUrl = entryUrl,
+                nextTargetId = targetId,
+                nextEntryUrl = entryUrl,
+                source = source,
             )
-            ACTION_END_ROOM -> MeetingCommand.EndRoom(roomId = roomId)
-            else -> MeetingCommand.None
+            ACTION_END_ROOM -> ControllerEndRequest(
+                commandId = commandId,
+                controllerSessionId = controllerSessionId,
+                stateVersion = stateVersion,
+                roomId = roomId,
+                source = source,
+            )
+            else -> null
         }
     }
 
@@ -601,11 +749,29 @@ public class SingleActivity : AppUpdateActivity() {
 
     private fun clearMeetingSessionAfterFinalRelease() {
         when (val state = meetingHost.currentState()) {
-            is MeetingSessionState.Ending -> meetingSessionCoordinator.completeEnding(roomId = state.roomId)
+            is MeetingSessionState.Ending -> controllerCommandGateway.completeEnding(roomId = state.roomId)
             MeetingSessionState.Idle,
             is MeetingSessionState.Active,
             is MeetingSessionState.StartRejected -> Unit
         }
+    }
+
+    private fun parseCommandSource(rawSource: String): ControllerCommandSource =
+        runCatching { ControllerCommandSource.valueOf(rawSource) }.getOrDefault(ControllerCommandSource.LOCAL_MANUAL)
+
+    private fun ControllerCommandResult.toMeetingUpdate(): SingleActivityMeetingUpdate {
+        val state = meetingHost.currentState()
+        val entryUrlToLoad = when (state) {
+            is MeetingSessionState.Active -> state.currentTarget.entryUrl
+            is MeetingSessionState.Ending -> state.currentTarget.entryUrl
+            is MeetingSessionState.StartRejected -> state.lastTarget?.entryUrl
+            MeetingSessionState.Idle -> snapshot.target?.entryUrl
+        }
+        return SingleActivityMeetingUpdate(
+            state = state,
+            entryUrlToLoad = entryUrlToLoad,
+            shouldFinalize = state is MeetingSessionState.Ending,
+        )
     }
 
     private fun refreshTopBar(state: MeetingSessionState = meetingHost.currentState()) {

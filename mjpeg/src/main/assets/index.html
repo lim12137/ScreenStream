@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
   <meta charset="utf-8">
@@ -89,96 +89,118 @@
 
     .topbar {
       display: grid;
-      grid-template-columns: minmax(260px, auto) minmax(0, 1fr) auto;
-      gap: 18px;
+      grid-template-columns: minmax(240px, auto) minmax(0, 1fr) auto;
+      gap: 14px;
       align-items: center;
-      padding: 18px 22px;
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.86);
-      backdrop-filter: blur(16px);
-      box-shadow: var(--shadow-soft);
+      padding: 14px 16px;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 14px;
+      gap: 12px;
       min-width: 0;
     }
 
     .brand-mark {
-      width: 58px;
-      height: 58px;
-      border-radius: 18px;
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
       display: grid;
       place-items: center;
-      background: linear-gradient(135deg, rgba(217, 12, 22, 0.12), rgba(255, 255, 255, 0.92));
-      border: 1px solid rgba(217, 12, 22, 0.12);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    }
-
-    .brand-mark img {
-      width: 34px;
-      height: 34px;
+      background: linear-gradient(180deg, rgba(217, 12, 22, 0.12), rgba(217, 12, 22, 0.04));
+      border: 1px solid rgba(217, 12, 22, 0.14);
+      color: var(--brand);
+      font-size: 23px;
+      font-weight: 700;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
     }
 
     .brand-kicker {
-      margin: 0 0 4px;
-      font-size: 12px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
+      margin: 0 0 2px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
       color: var(--text-tertiary);
     }
 
     .brand h1 {
       margin: 0;
-      font-size: 34px;
-      line-height: 1;
-      color: var(--brand);
+      font-size: 28px;
+      line-height: 1.08;
       font-weight: 800;
-      letter-spacing: 0.01em;
+      letter-spacing: -0.02em;
+      color: #18212c;
+    }
+
+    .brand-subtitle {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--text-secondary);
     }
 
     .topbar-chips {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
+      display: flex;
+      gap: 10px;
       min-width: 0;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .topbar-chips::-webkit-scrollbar {
+      display: none;
     }
 
     .topbar-chip {
-      min-width: 0;
-      padding: 12px 16px;
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      background: var(--surface-strong);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-areas:
+        "label caret"
+        "value caret";
+      gap: 3px 10px;
+      min-width: 158px;
+      padding: 10px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(17, 24, 39, 0.07);
+      background: linear-gradient(180deg, rgba(248, 249, 251, 0.98), rgba(242, 244, 247, 0.98));
     }
 
     .chip-label {
+      grid-area: label;
       display: block;
-      margin-bottom: 6px;
-      font-size: 12px;
+      margin: 0;
+      font-size: 11px;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.04em;
       color: var(--text-tertiary);
     }
 
     .chip-value {
+      grid-area: value;
       display: block;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 700;
-      color: var(--text-primary);
+      color: #1f2937;
+    }
+
+    .chip-caret {
+      grid-area: caret;
+      align-self: center;
+      font-size: 12px;
+      color: #9ca3af;
     }
 
     .toolbar {
       display: none;
-      gap: 12px;
+      gap: 8px;
       flex-wrap: wrap;
       justify-content: flex-end;
     }
@@ -188,17 +210,17 @@
     }
 
     .toolbar-button {
-      min-height: 56px;
-      padding: 0 18px;
-      border-radius: 18px;
-      border: 1px solid rgba(217, 12, 22, 0.18);
-      background: var(--surface-strong);
+      min-height: 46px;
+      padding: 0 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      background: #ffffff;
       color: var(--text-primary);
-      box-shadow: var(--shadow-soft);
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
       display: inline-flex;
       align-items: center;
-      gap: 12px;
-      font-size: 16px;
+      gap: 10px;
+      font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -208,104 +230,131 @@
     .toolbar-button:hover,
     .toolbar-button:focus-visible {
       transform: translateY(-1px);
-      box-shadow: 0 16px 30px rgba(217, 12, 22, 0.12);
-      border-color: rgba(217, 12, 22, 0.28);
+      box-shadow: 0 12px 24px rgba(217, 12, 22, 0.12);
+      border-color: rgba(217, 12, 22, 0.24);
       outline: none;
     }
 
     .toolbar-button--primary {
-      background: linear-gradient(180deg, var(--brand), var(--brand-dark));
+      background: linear-gradient(180deg, #e31c25, #b40c14);
       color: #ffffff;
       border-color: transparent;
+      box-shadow: 0 10px 24px rgba(217, 12, 22, 0.22);
     }
 
     .toolbar-button--primary:hover,
     .toolbar-button--primary:focus-visible {
-      box-shadow: 0 16px 30px rgba(217, 12, 22, 0.24);
+      box-shadow: 0 16px 28px rgba(217, 12, 22, 0.28);
     }
 
     .toolbar-button img {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       display: block;
       pointer-events: none;
     }
 
     .dashboard {
       display: grid;
-      gap: 20px;
+      gap: 16px;
     }
 
     .hero-card {
-      display: grid;
-      grid-template-columns: minmax(360px, 0.94fr) minmax(0, 1.46fr);
-      gap: 18px;
-      padding: 18px;
-      border-radius: 28px;
-      border: 1px solid var(--border);
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 251, 252, 0.92));
+      margin: 0;
+    }
+
+    .hero-stage {
+      position: relative;
+      min-height: 596px;
+      padding: 22px;
+      border-radius: 30px;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 247, 250, 0.94)),
+        linear-gradient(135deg, rgba(217, 12, 22, 0.05), rgba(37, 99, 235, 0.03));
       box-shadow: var(--shadow);
       overflow: hidden;
     }
 
-    .hero-copy {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+    .hero-stage::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 12% 16%, rgba(217, 12, 22, 0.08), transparent 26%),
+        radial-gradient(circle at 86% 82%, rgba(37, 99, 235, 0.06), transparent 24%);
+      pointer-events: none;
+    }
+
+    .hero-stage-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(286px, 0.84fr) minmax(0, 1.4fr) minmax(250px, 0.8fr);
+      gap: 16px;
+      align-items: stretch;
+      min-height: 100%;
+    }
+
+    .hero-floating-card {
       min-width: 0;
+      border-radius: 24px;
+      border: 1px solid rgba(17, 24, 39, 0.08);
+      background: rgba(255, 255, 255, 0.84);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
     }
 
-    .hero-status {
-      display: inline-flex;
-      align-self: flex-start;
-      align-items: center;
+    .hero-floating-card--status {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero-heading {
+      display: grid;
       gap: 8px;
-      margin: 0;
-      padding: 8px 14px;
-      border-radius: 999px;
-      background: var(--brand-soft);
-      color: var(--brand);
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
     }
 
-    .hero-copy h2 {
+    .hero-eyebrow {
       margin: 0;
-      font-size: clamp(34px, 3vw, 52px);
-      line-height: 1.05;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--brand);
+    }
+
+    .hero-heading h2 {
+      margin: 0;
+      font-size: clamp(28px, 2.4vw, 38px);
+      line-height: 1.12;
       letter-spacing: -0.03em;
     }
 
     .hero-description {
       margin: 0;
-      max-width: 30em;
-      font-size: 17px;
-      line-height: 1.7;
+      font-size: 14px;
+      line-height: 1.65;
       color: var(--text-secondary);
     }
 
     .hero-panel {
       position: relative;
-      min-height: 308px;
-      border-radius: 24px;
-      background:
-        linear-gradient(160deg, rgba(217, 12, 22, 0.06), rgba(255, 255, 255, 0) 40%),
-        var(--surface-strong);
-      border: 1px solid rgba(217, 12, 22, 0.12);
-      box-shadow: var(--shadow-soft);
+      min-height: 360px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 250, 0.98));
+      border: 1px solid rgba(17, 24, 39, 0.07);
       overflow: hidden;
     }
 
     .state-card {
       position: absolute;
       inset: 0;
-      padding: 28px;
+      padding: 22px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      gap: 18px;
+      gap: 16px;
       opacity: 0;
       visibility: hidden;
       transform: translateY(10px);
@@ -328,12 +377,12 @@
 
     .state-icon {
       flex: none;
-      width: 54px;
-      height: 54px;
-      border-radius: 18px;
+      width: 48px;
+      height: 48px;
+      border-radius: 15px;
       display: grid;
       place-items: center;
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 800;
     }
 
@@ -354,26 +403,26 @@
 
     .state-card h3 {
       margin: 0 0 6px;
-      font-size: 28px;
+      font-size: 22px;
       line-height: 1.1;
     }
 
     .state-card p {
       margin: 0;
-      font-size: 16px;
-      line-height: 1.65;
+      font-size: 14px;
+      line-height: 1.6;
       color: var(--text-secondary);
     }
 
     .state-meta {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
+      gap: 10px;
     }
 
     .state-meta-item {
-      padding: 14px 16px;
-      border-radius: 18px;
+      padding: 12px 14px;
+      border-radius: 16px;
       background: var(--surface-muted);
       border: 1px solid rgba(15, 23, 42, 0.05);
     }
@@ -381,7 +430,7 @@
     .state-meta-label {
       display: block;
       margin-bottom: 6px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
@@ -390,7 +439,7 @@
 
     .state-meta-value {
       display: block;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 700;
       color: var(--text-primary);
     }
@@ -398,13 +447,13 @@
     #pinForm {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
     }
 
     #pinForm label {
       grid-column: 1 / -1;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -413,14 +462,14 @@
 
     #pinDiv input {
       width: 100%;
-      min-height: 54px;
+      min-height: 48px;
       padding: 0 16px;
-      border-radius: 16px;
+      border-radius: 14px;
       border: 1px solid rgba(17, 24, 39, 0.14);
       background: #ffffff;
       color: var(--text-primary);
       font-family: "Cascadia Code", "Consolas", monospace;
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 700;
       letter-spacing: 0.18em;
       text-align: center;
@@ -434,13 +483,13 @@
     }
 
     #sendPin {
-      min-height: 54px;
-      padding: 0 24px;
+      min-height: 48px;
+      padding: 0 20px;
       border: none;
-      border-radius: 16px;
+      border-radius: 14px;
       background: linear-gradient(180deg, var(--brand), var(--brand-dark));
       color: #ffffff;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       cursor: pointer;
       box-shadow: 0 14px 24px rgba(217, 12, 22, 0.2);
@@ -448,11 +497,11 @@
 
     .inline-message {
       display: none;
-      padding: 14px 16px;
-      border-radius: 16px;
+      padding: 12px 14px;
+      border-radius: 14px;
       background: var(--danger-soft);
       color: var(--danger);
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 700;
     }
 
@@ -503,9 +552,77 @@
       }
     }
 
+    .hero-floating-card--stream {
+      padding: 16px;
+      display: flex;
+    }
+
+    .hero-floating-card--side {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .hero-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: var(--brand-soft);
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .hero-side-title {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+    .hero-side-text {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+    }
+
+    .hero-brief {
+      display: grid;
+      gap: 10px;
+    }
+
+    .hero-brief-item {
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(17, 24, 39, 0.06);
+      background: rgba(248, 249, 251, 0.96);
+    }
+
+    .hero-brief-label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+    }
+
+    .hero-brief-value {
+      display: block;
+      font-size: 14px;
+      line-height: 1.5;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
     .hero-points {
       display: grid;
-      gap: 12px;
+      gap: 10px;
       margin: 0;
       padding: 0;
       list-style: none;
@@ -514,29 +631,25 @@
     .hero-points li {
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      padding: 14px 16px;
-      border-radius: 18px;
-      border: 1px solid rgba(15, 23, 42, 0.06);
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 16px;
       background: rgba(255, 255, 255, 0.7);
       color: var(--text-secondary);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+      font-size: 13px;
+      line-height: 1.65;
+      border: 1px solid rgba(15, 23, 42, 0.05);
     }
 
     .hero-points li::before {
       content: "";
       flex: none;
-      width: 10px;
-      height: 10px;
-      margin-top: 7px;
+      width: 8px;
+      height: 8px;
+      margin-top: 6px;
       border-radius: 50%;
       background: var(--brand);
-      box-shadow: 0 0 0 6px rgba(217, 12, 22, 0.1);
-    }
-
-    .hero-media {
-      min-width: 0;
-      display: flex;
+      box-shadow: 0 0 0 4px rgba(217, 12, 22, 0.1);
     }
 
     .media-shell {
@@ -544,11 +657,11 @@
       min-height: 100%;
       display: flex;
       flex-direction: column;
-      border-radius: 26px;
+      border-radius: 24px;
       overflow: hidden;
       background:
-        linear-gradient(160deg, rgba(8, 15, 28, 0.2), rgba(8, 15, 28, 0.05)),
-        linear-gradient(120deg, #10243c 0%, #0b1420 44%, #173559 100%);
+        linear-gradient(180deg, rgba(40, 56, 78, 0.96), rgba(16, 25, 37, 0.98)),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
       position: relative;
     }
@@ -556,24 +669,9 @@
     .media-shell::before {
       content: "";
       position: absolute;
-      inset: 22% 7% 14%;
-      border-radius: 24px;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0)),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.06), transparent 45%, rgba(255, 255, 255, 0.05));
-      pointer-events: none;
-    }
-
-    .media-shell::after {
-      content: "";
-      position: absolute;
-      left: 12%;
-      right: 12%;
-      bottom: 10%;
-      height: 18%;
-      border-radius: 999px 999px 22px 22px;
-      background: linear-gradient(180deg, rgba(84, 60, 45, 0.18), rgba(49, 28, 17, 0.48));
-      filter: blur(1px);
+      inset: 54px 20px 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       pointer-events: none;
     }
 
@@ -584,30 +682,29 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      padding: 20px 24px 0;
-      color: rgba(255, 255, 255, 0.92);
-      font-size: 20px;
+      padding: 16px 18px 0;
+      color: rgba(255, 255, 255, 0.94);
+      font-size: 15px;
       font-weight: 700;
     }
 
     .media-pill {
       flex: none;
-      padding: 8px 14px;
+      padding: 6px 12px;
       border-radius: 999px;
       background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       backdrop-filter: blur(8px);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.04em;
     }
 
     .media-canvas {
       position: relative;
-      min-height: 480px;
+      min-height: 506px;
       flex: 1;
-      padding: 24px;
+      padding: 18px;
       display: flex;
       align-items: stretch;
       justify-content: stretch;
@@ -624,8 +721,8 @@
     .stream-placeholder {
       display: flex;
       align-items: flex-end;
-      padding: 28px;
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       background:
         linear-gradient(180deg, rgba(4, 11, 22, 0.1), rgba(4, 11, 22, 0.62)),
         linear-gradient(120deg, rgba(12, 22, 38, 0.16), rgba(12, 22, 38, 0.82));
@@ -634,33 +731,32 @@
     .placeholder-copy {
       position: relative;
       z-index: 1;
-      max-width: 24em;
+      max-width: 20em;
       color: rgba(255, 255, 255, 0.92);
     }
 
     .placeholder-tag {
       display: inline-flex;
-      margin-bottom: 12px;
-      padding: 8px 12px;
+      margin-bottom: 10px;
+      padding: 7px 11px;
       border-radius: 999px;
       background: rgba(217, 12, 22, 0.2);
       color: #ffffff;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.04em;
     }
 
     .placeholder-copy h3 {
       margin: 0 0 12px;
-      font-size: 42px;
-      line-height: 1.08;
+      font-size: 30px;
+      line-height: 1.14;
       letter-spacing: -0.03em;
     }
 
     .placeholder-copy p {
       margin: 0;
-      font-size: 17px;
+      font-size: 14px;
       line-height: 1.7;
       color: rgba(255, 255, 255, 0.78);
     }
@@ -693,29 +789,29 @@
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 18px;
+      gap: 14px;
     }
 
     .stat-card {
-      padding: 22px;
-      border-radius: 24px;
+      padding: 16px;
+      border-radius: 20px;
       border: 1px solid var(--border);
       background: var(--surface-strong);
-      box-shadow: var(--shadow-soft);
+      box-shadow: none;
       display: grid;
-      grid-template-columns: 64px minmax(0, 1fr);
-      gap: 16px;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 12px;
       align-items: center;
       min-width: 0;
     }
 
     .stat-icon {
-      width: 64px;
-      height: 64px;
-      border-radius: 20px;
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
       display: grid;
       place-items: center;
-      font-size: 28px;
+      font-size: 18px;
       font-weight: 700;
     }
 
@@ -741,16 +837,16 @@
 
     .stat-label {
       display: block;
-      margin-bottom: 8px;
-      font-size: 15px;
+      margin-bottom: 4px;
+      font-size: 12px;
       font-weight: 700;
       color: var(--text-secondary);
     }
 
     .stat-value {
       display: block;
-      font-size: 30px;
-      line-height: 1.1;
+      font-size: 24px;
+      line-height: 1.15;
       font-weight: 800;
       letter-spacing: -0.03em;
       color: var(--text-primary);
@@ -758,8 +854,8 @@
 
     .stat-meta {
       display: block;
-      margin-top: 8px;
-      font-size: 14px;
+      margin-top: 6px;
+      font-size: 12px;
       line-height: 1.5;
       color: var(--text-tertiary);
     }
@@ -767,15 +863,15 @@
     .content-grid {
       display: grid;
       grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.9fr);
-      gap: 18px;
+      gap: 14px;
     }
 
     .content-card {
-      padding: 22px;
-      border-radius: 24px;
+      padding: 18px;
+      border-radius: 20px;
       border: 1px solid var(--border);
       background: var(--surface-strong);
-      box-shadow: var(--shadow-soft);
+      box-shadow: none;
       min-width: 0;
     }
 
@@ -784,17 +880,17 @@
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
     }
 
     .content-header h3 {
       margin: 0;
-      font-size: 30px;
+      font-size: 22px;
       letter-spacing: -0.03em;
     }
 
     .content-header span {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-tertiary);
     }
@@ -803,23 +899,22 @@
       width: 100%;
       border-collapse: collapse;
       overflow: hidden;
-      border-radius: 20px;
+      border-radius: 16px;
       border: 1px solid rgba(15, 23, 42, 0.05);
       background: var(--surface-muted);
     }
 
     .checklist-table th,
     .checklist-table td {
-      padding: 16px 18px;
+      padding: 12px 14px;
       text-align: left;
-      font-size: 15px;
+      font-size: 14px;
       border-bottom: 1px solid rgba(15, 23, 42, 0.06);
     }
 
     .checklist-table th {
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      font-size: 12px;
+      letter-spacing: 0.04em;
       color: var(--text-tertiary);
       background: rgba(255, 255, 255, 0.72);
     }
@@ -832,10 +927,10 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 32px;
-      padding: 0 12px;
+      min-height: 28px;
+      padding: 0 10px;
       border-radius: 999px;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       white-space: nowrap;
     }
@@ -857,7 +952,7 @@
 
     .notice-list {
       display: grid;
-      gap: 14px;
+      gap: 0;
       margin: 0;
       padding: 0;
       list-style: none;
@@ -865,12 +960,10 @@
 
     .notice-list li {
       display: grid;
-      grid-template-columns: 14px minmax(0, 1fr);
+      grid-template-columns: 10px minmax(0, 1fr);
       gap: 12px;
-      padding-bottom: 14px;
+      padding: 12px 0;
       border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-      font-size: 15px;
-      line-height: 1.7;
       color: var(--text-secondary);
     }
 
@@ -883,9 +976,23 @@
       content: "";
       width: 6px;
       height: 6px;
-      margin-top: 11px;
+      margin-top: 8px;
       border-radius: 50%;
       background: var(--brand);
+    }
+
+    .notice-list strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .notice-list span {
+      display: block;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-secondary);
     }
 
     #pipStreamDiv video {
@@ -903,20 +1010,24 @@
       }
 
       .topbar-chips {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        flex-wrap: wrap;
       }
 
       .toolbar {
         justify-content: flex-start;
       }
 
-      .hero-card,
+      .hero-stage-grid,
       .content-grid {
         grid-template-columns: 1fr;
       }
 
+      .hero-floating-card--stream {
+        order: -1;
+      }
+
       .hero-panel {
-        min-height: 290px;
+        min-height: 320px;
       }
     }
 
@@ -925,7 +1036,6 @@
         padding: 16px;
       }
 
-      .topbar-chips,
       .stats-grid {
         grid-template-columns: 1fr 1fr;
       }
@@ -936,9 +1046,18 @@
     }
 
     @media screen and (max-width: 720px) {
-      .topbar-chips,
       .stats-grid {
         grid-template-columns: 1fr;
+      }
+
+      .topbar-chips {
+        display: grid;
+        grid-template-columns: 1fr;
+        overflow: visible;
+      }
+
+      .topbar-chip {
+        min-width: 0;
       }
 
       .toolbar {
@@ -950,15 +1069,15 @@
         justify-content: center;
       }
 
-      .hero-card,
+      .hero-stage,
       .content-card {
         padding: 16px;
       }
 
-      .hero-copy h2,
+      .hero-heading h2,
       .placeholder-copy h3,
       .content-header h3 {
-        font-size: 28px;
+        font-size: 24px;
       }
 
       .media-canvas {
@@ -1003,214 +1122,245 @@
 
     <header class="topbar">
       <div class="brand">
-        <div class="brand-mark">
-          <img src="logo.svg" alt="ScreenStream logo">
-        </div>
+        <div class="brand-mark" aria-hidden="true">⚙</div>
         <div>
-          <p class="brand-kicker">Local console</p>
-          <h1>ScreenStream</h1>
+          <p class="brand-kicker">会议系统 / 本地控制台</p>
+          <h1>会议投屏台</h1>
+          <p class="brand-subtitle">ScreenStream 局域网会场端</p>
         </div>
       </div>
 
       <div class="topbar-chips">
         <div class="topbar-chip">
-          <span class="chip-label">Session host</span>
-          <span class="chip-value" id="chipHostValue">Current device</span>
+          <span class="chip-label">会场主机</span>
+          <span class="chip-value" id="chipHostValue">当前设备</span>
+          <span class="chip-caret" aria-hidden="true">▾</span>
         </div>
         <div class="topbar-chip">
-          <span class="chip-label">Access</span>
-          <span class="chip-value" id="chipAccessValue">Waiting for policy</span>
+          <span class="chip-label">接入策略</span>
+          <span class="chip-value" id="chipAccessValue">等待主控</span>
+          <span class="chip-caret" aria-hidden="true">▾</span>
         </div>
         <div class="topbar-chip">
-          <span class="chip-label">Viewer status</span>
-          <span class="chip-value" id="chipStatusValue">Connecting</span>
+          <span class="chip-label">查看状态</span>
+          <span class="chip-value" id="chipStatusValue">连接中</span>
+          <span class="chip-caret" aria-hidden="true">▾</span>
         </div>
         <div class="topbar-chip">
-          <span class="chip-label">Transport</span>
-          <span class="chip-value" id="chipTransportValue">MJPEG</span>
+          <span class="chip-label">传输通道</span>
+          <span class="chip-value" id="chipTransportValue">MJPEG 直连</span>
+          <span class="chip-caret" aria-hidden="true">▾</span>
         </div>
       </div>
 
       <div id="buttonsDiv" class="toolbar" aria-label="Viewer controls">
         <button type="button" id="fullscreenButton" class="toolbar-button" onclick="toggleFullscreen()">
           <img id="fullscreenIcon" alt="" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23D90C16' d='M5,5H10V7H7V10H5V5M14,5H19V10H17V7H14V5M17,14H19V19H14V17H17V14M10,17V19H5V14H7V17H10Z'/%3E%3C/svg%3E">
-          <span>Full screen</span>
+          <span>全屏</span>
         </button>
         <button type="button" class="toolbar-button toolbar-button--primary" onclick="toggleStartStop()">
           <img alt="" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23FFFFFF' d='M3,5V19L11,12M13,19H16V5H13M18,5V19H21V5'/%3E%3C/svg%3E">
-          <span>Start / Stop</span>
+          <span>开始 / 停止</span>
         </button>
         <button type="button" id="PiPButton" class="toolbar-button" onclick="togglePiP()">
           <img id="PiPIcon" alt="" src="data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23D90C16' d='M19 11h-8v6h8v-6m4 8V5c0-1.12-.9-2-2-2H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2m-2 0H3V4.97h18V19Z'/%3E%3C/svg%3E">
-          <span>Picture in picture</span>
+          <span>画中画</span>
         </button>
       </div>
     </header>
 
     <main class="dashboard">
       <section class="hero-card">
-        <div class="hero-copy">
-          <p class="hero-status" id="heroStatus">Awaiting host device</p>
-          <h2>Reliable screen sharing for meeting room tablets</h2>
-          <p class="hero-description">
-            Keep this page open on the conference display, then let the Android host device publish the local MJPEG stream.
-            PIN, reconnect prompts, access blocking, and viewer controls stay available in one consistent console shell.
-          </p>
+        <div class="hero-stage">
+          <div class="hero-stage-grid">
+            <div class="hero-floating-card hero-floating-card--status">
+              <div class="hero-heading">
+                <p class="hero-eyebrow">会场主屏 / 状态卡</p>
+                <h2>会议主屏保持在线，投屏状态与控制集中可见</h2>
+                <p class="hero-description">
+                  这一页面向会议平板首页展示，保留接入校验、重连提示与流播放区，整体收敛为更像会场终端的中控界面。
+                </p>
+              </div>
 
-          <div class="hero-panel">
-            <div id="connectDiv" class="state-card is-visible">
-              <div>
-                <div class="state-card-header">
-                  <div class="state-icon state-icon--brand">SS</div>
+              <div class="hero-panel">
+                <div id="connectDiv" class="state-card is-visible">
                   <div>
-                    <h3>%CONNECTING%</h3>
-                    <p>The viewer is establishing the WebSocket session and waiting for the host device to expose the local stream.</p>
+                    <div class="state-card-header">
+                      <div class="state-icon state-icon--brand">连</div>
+                      <div>
+                        <h3>%CONNECTING%</h3>
+                        <p>正在建立 WebSocket 会话，并等待主控设备公开本地 MJPEG 地址。</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div>
-                <div class="loading" aria-hidden="true">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-                <div class="state-meta" style="margin-top: 20px;">
-                  <div class="state-meta-item">
-                    <span class="state-meta-label">Host endpoint</span>
-                    <span class="state-meta-value" id="connectHostValue">Loading current address</span>
-                  </div>
-                  <div class="state-meta-item">
-                    <span class="state-meta-label">Transport</span>
-                    <span class="state-meta-value">MJPEG over local network</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div id="pinDiv" class="state-card" aria-hidden="true">
-              <div>
-                <div class="state-card-header">
-                  <div class="state-icon state-icon--warning">#</div>
                   <div>
-                    <h3>PIN verification</h3>
-                    <p>%STREAM_REQUIRE_PIN%</p>
+                    <div class="loading" aria-hidden="true">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <div class="state-meta" style="margin-top: 18px;">
+                      <div class="state-meta-item">
+                        <span class="state-meta-label">主机地址</span>
+                        <span class="state-meta-value" id="connectHostValue">正在读取当前地址</span>
+                      </div>
+                      <div class="state-meta-item">
+                        <span class="state-meta-label">传输方式</span>
+                        <span class="state-meta-value">局域网 MJPEG</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div>
-                <form action="" id="pinForm" autocomplete="off">
-                  <label for="pin">%ENTER_PIN%</label>
-                  <input id="pin" autofocus maxlength="6" pattern="[0-9]{4,6}" required type="password" autocomplete="off">
-                  <button id="sendPin" type="submit">%SUBMIT_PIN%</button>
-                </form>
-                <p id="pinWrongMsg" class="inline-message">%WRONG_PIN_MESSAGE%</p>
-                <div class="state-meta" style="margin-top: 18px;">
-                  <div class="state-meta-item">
-                    <span class="state-meta-label">Security mode</span>
-                    <span class="state-meta-value">Protected viewing</span>
-                  </div>
-                  <div class="state-meta-item">
-                    <span class="state-meta-label">Policy</span>
-                    <span class="state-meta-value">PIN must match host device</span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <div id="blockedDiv" class="state-card" aria-hidden="true">
-              <div>
-                <div class="state-card-header">
-                  <div class="state-icon state-icon--danger">!</div>
+                <div id="pinDiv" class="state-card" aria-hidden="true">
                   <div>
-                    <h3>Access restricted</h3>
-                    <p>%ADDRESS_BLOCKED%</p>
+                    <div class="state-card-header">
+                      <div class="state-icon state-icon--warning">码</div>
+                      <div>
+                        <h3>PIN 校验</h3>
+                        <p>%STREAM_REQUIRE_PIN%</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div class="state-meta">
-                <div class="state-meta-item">
-                  <span class="state-meta-label">Security status</span>
-                  <span class="state-meta-value">Address temporarily blocked</span>
-                </div>
-                <div class="state-meta-item">
-                  <span class="state-meta-label">Recommended action</span>
-                  <span class="state-meta-value">Use the host device to review PIN attempts</span>
-                </div>
-              </div>
-            </div>
-
-            <div id="errorDiv" class="state-card" aria-hidden="true">
-              <div>
-                <div class="state-card-header">
-                  <div class="state-icon state-icon--danger">!!</div>
                   <div>
-                    <h3>Session unavailable</h3>
-                    <p>%ERROR%</p>
+                    <form action="" id="pinForm" autocomplete="off">
+                      <label for="pin">%ENTER_PIN%</label>
+                      <input id="pin" autofocus maxlength="6" pattern="[0-9]{4,6}" required type="password" autocomplete="off">
+                      <button id="sendPin" type="submit">%SUBMIT_PIN%</button>
+                    </form>
+                    <p id="pinWrongMsg" class="inline-message">%WRONG_PIN_MESSAGE%</p>
+                    <div class="state-meta" style="margin-top: 18px;">
+                      <div class="state-meta-item">
+                        <span class="state-meta-label">校验模式</span>
+                        <span class="state-meta-value">受保护查看</span>
+                      </div>
+                      <div class="state-meta-item">
+                        <span class="state-meta-label">当前策略</span>
+                        <span class="state-meta-value">需与主控端 PIN 一致</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="state-meta">
-                <div class="state-meta-item">
-                  <span class="state-meta-label">Viewer status</span>
-                  <span class="state-meta-value">Connection could not be restored</span>
-                </div>
-                <div class="state-meta-item">
-                  <span class="state-meta-label">Next step</span>
-                  <span class="state-meta-value">Reload the page after the host stream is ready</span>
-                </div>
-              </div>
-            </div>
 
-            <div id="liveDiv" class="state-card" aria-hidden="true">
-              <div>
-                <div class="state-card-header">
-                  <div class="state-icon state-icon--brand">OK</div>
+                <div id="blockedDiv" class="state-card" aria-hidden="true">
                   <div>
-                    <h3>Viewer ready</h3>
-                    <p>The conference display is prepared to render the live MJPEG feed while keeping quick access to recovery and viewer controls.</p>
+                    <div class="state-card-header">
+                      <div class="state-icon state-icon--danger">禁</div>
+                      <div>
+                        <h3>访问受限</h3>
+                        <p>%ADDRESS_BLOCKED%</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="state-meta">
+                    <div class="state-meta-item">
+                      <span class="state-meta-label">安全状态</span>
+                      <span class="state-meta-value">当前地址已临时封禁</span>
+                    </div>
+                    <div class="state-meta-item">
+                      <span class="state-meta-label">建议处理</span>
+                      <span class="state-meta-value">请在主控设备核对 PIN 尝试记录</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="errorDiv" class="state-card" aria-hidden="true">
+                  <div>
+                    <div class="state-card-header">
+                      <div class="state-icon state-icon--danger">异常</div>
+                      <div>
+                        <h3>会话不可用</h3>
+                        <p>%ERROR%</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="state-meta">
+                    <div class="state-meta-item">
+                      <span class="state-meta-label">查看状态</span>
+                      <span class="state-meta-value">连接未能恢复</span>
+                    </div>
+                    <div class="state-meta-item">
+                      <span class="state-meta-label">下一步</span>
+                      <span class="state-meta-value">待主控准备完成后刷新当前页面</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="liveDiv" class="state-card" aria-hidden="true">
+                  <div>
+                    <div class="state-card-header">
+                      <div class="state-icon state-icon--brand">播</div>
+                      <div>
+                        <h3>主屏就绪</h3>
+                        <p>主视觉区可以直接承载会议画面，同时保留恢复链路与快捷操作。</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="state-meta">
+                    <div class="state-meta-item">
+                      <span class="state-meta-label">接入状态</span>
+                      <span class="state-meta-value" id="liveAccessValue">等待主控</span>
+                    </div>
+                    <div class="state-meta-item">
+                      <span class="state-meta-label">恢复模式</span>
+                      <span class="state-meta-value" id="liveRecoveryValue">就绪</span>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div class="state-meta">
-                <div class="state-meta-item">
-                  <span class="state-meta-label">Access state</span>
-                  <span class="state-meta-value" id="liveAccessValue">Waiting for policy</span>
+            </div>
+
+            <div class="hero-floating-card hero-floating-card--stream">
+              <div class="media-shell">
+                <div class="media-shell-header">
+                  <span>会议主视觉区</span>
+                  <span class="media-pill" id="mediaStatusPill">待机</span>
                 </div>
-                <div class="state-meta-item">
-                  <span class="state-meta-label">Recovery mode</span>
-                  <span class="state-meta-value" id="liveRecoveryValue">Ready</span>
+                <div class="media-canvas">
+                  <div class="stream-placeholder">
+                    <div class="placeholder-copy">
+                      <span class="placeholder-tag">会场主屏</span>
+                      <h3>直播画面将在这里接管展示</h3>
+                      <p>连接前显示终端壳层，连接成功后由 MJPEG 画面覆盖；重连时仍保留当前流恢复路径。</p>
+                    </div>
+                  </div>
+
+                  <div id="streamDiv" class="stream-surface">
+                    <img id="stream" alt="ScreenStream 实时画面" FIT_WINDOW>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <ul class="hero-points">
-            <li>This page keeps the stream surface, access prompts, and recovery notices inside one tablet-first viewing shell.</li>
-            <li>Viewer controls remain touch-friendly and stay visible whenever web controls are enabled by the host device.</li>
-            <li>If the MJPEG stream stalls, the page keeps the reconnect path and JPEG fallback logic from the existing implementation.</li>
-          </ul>
-        </div>
+            <div class="hero-floating-card hero-floating-card--side">
+              <p class="hero-status" id="heroStatus">等待主控接入</p>
+              <h3 class="hero-side-title">会场概览</h3>
+              <p class="hero-side-text">
+                页面优先服务会议平板首页展示，强调主屏、状态与控制的集中呈现，而不是营销式数据看板。
+              </p>
 
-        <div class="hero-media">
-          <div class="media-shell">
-            <div class="media-shell-header">
-              <span>Conference display preview</span>
-              <span class="media-pill" id="mediaStatusPill">Standby</span>
-            </div>
-            <div class="media-canvas">
-              <div class="stream-placeholder">
-                <div class="placeholder-copy">
-                  <span class="placeholder-tag">Enterprise viewing surface</span>
-                  <h3>Live meeting view appears here</h3>
-                  <p>The shell stays visible before and after connection, while the MJPEG frame takes over the stage as soon as the stream loads.</p>
+              <div class="hero-brief">
+                <div class="hero-brief-item">
+                  <span class="hero-brief-label">页面定位</span>
+                  <span class="hero-brief-value">会议主屏常驻页</span>
+                </div>
+                <div class="hero-brief-item">
+                  <span class="hero-brief-label">控制策略</span>
+                  <span class="hero-brief-value">允许时显示全屏、画中画与启停</span>
+                </div>
+                <div class="hero-brief-item">
+                  <span class="hero-brief-label">恢复链路</span>
+                  <span class="hero-brief-value">保留重连提示与 JPEG 回退</span>
                 </div>
               </div>
 
-              <div id="streamDiv" class="stream-surface">
-                <img id="stream" alt="ScreenStream live stream" FIT_WINDOW>
-              </div>
+              <ul class="hero-points">
+                <li>主屏、校验卡与操作区保持同屏，适合固定放在会场平板或大屏。</li>
+                <li>PIN、封禁、异常和播放态仍通过原有状态分支驱动，不变成纯静态贴图。</li>
+                <li>字号与留白已压缩，界面语义改用更接近会议中控的中文表述。</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -1220,33 +1370,33 @@
         <article class="stat-card">
           <div class="stat-icon stat-icon--brand">◉</div>
           <div>
-            <span class="stat-label">Viewing status</span>
-            <span id="viewerStatusValue" class="stat-value">Connecting</span>
-            <span id="viewerStatusMeta" class="stat-meta">WebSocket handshake is in progress.</span>
+            <span class="stat-label">会场状态</span>
+            <span id="viewerStatusValue" class="stat-value">连接中</span>
+            <span id="viewerStatusMeta" class="stat-meta">正在建立主控会话。</span>
           </div>
         </article>
         <article class="stat-card">
           <div class="stat-icon stat-icon--info">#</div>
           <div>
-            <span class="stat-label">Access control</span>
-            <span id="securityStatusValue" class="stat-value">Pending</span>
-            <span id="securityStatusMeta" class="stat-meta">PIN and address policy will be applied by the host device.</span>
+            <span class="stat-label">接入安全</span>
+            <span id="securityStatusValue" class="stat-value">待确认</span>
+            <span id="securityStatusMeta" class="stat-meta">PIN 与地址策略由主控端下发。</span>
           </div>
         </article>
         <article class="stat-card">
           <div class="stat-icon stat-icon--success">▣</div>
           <div>
-            <span class="stat-label">Viewer controls</span>
-            <span id="controlsStatusValue" class="stat-value">Hidden</span>
-            <span id="controlsStatusMeta" class="stat-meta">Touch controls appear only when web controls are enabled.</span>
+            <span class="stat-label">控制面板</span>
+            <span id="controlsStatusValue" class="stat-value">隐藏</span>
+            <span id="controlsStatusMeta" class="stat-meta">仅在主控允许时显示触控操作。</span>
           </div>
         </article>
         <article class="stat-card">
           <div class="stat-icon stat-icon--warning">↺</div>
           <div>
-            <span class="stat-label">Recovery</span>
-            <span id="recoveryStatusValue" class="stat-value">Ready</span>
-            <span id="recoveryStatusMeta" class="stat-meta">Reconnect banner and fallback remain available.</span>
+            <span class="stat-label">恢复链路</span>
+            <span id="recoveryStatusValue" class="stat-value">就绪</span>
+            <span id="recoveryStatusMeta" class="stat-meta">保留重连提示与流回退策略。</span>
           </div>
         </article>
       </section>
@@ -1254,42 +1404,42 @@
       <section class="content-grid">
         <article class="content-card">
           <div class="content-header">
-            <h3>Viewing checklist</h3>
-            <span>Recommended tablet workflow</span>
+            <h3>会议准备单</h3>
+            <span>主屏值守流程</span>
           </div>
           <table class="checklist-table">
             <thead>
               <tr>
-                <th>Step</th>
-                <th>Operator task</th>
-                <th>Where it happens</th>
-                <th>Status</th>
+                <th>序号</th>
+                <th>当前动作</th>
+                <th>操作位置</th>
+                <th>状态</th>
               </tr>
             </thead>
             <tbody>
               <tr>
                 <td>1</td>
-                <td>Open this page on the shared meeting-room display.</td>
-                <td>Viewer browser</td>
-                <td><span class="status-pill status-pill--ready">Required</span></td>
+                <td>在会场平板或大屏打开当前页面，并保持前台常驻。</td>
+                <td>查看端浏览器</td>
+                <td><span class="status-pill status-pill--ready">必需</span></td>
               </tr>
               <tr>
                 <td>2</td>
-                <td>Enter the PIN shown on the Android host device when protection is enabled.</td>
-                <td>PIN panel</td>
-                <td><span class="status-pill status-pill--action">When prompted</span></td>
+                <td>如主控启用保护，请输入设备端显示的 PIN 码。</td>
+                <td>PIN 面板</td>
+                <td><span class="status-pill status-pill--action">按提示</span></td>
               </tr>
               <tr>
                 <td>3</td>
-                <td>Use the header buttons for fullscreen, PiP, or device-side start/stop.</td>
-                <td>Top controls</td>
-                <td><span class="status-pill status-pill--pending">Optional</span></td>
+                <td>根据会场需要使用顶部按钮执行全屏、画中画或启停。</td>
+                <td>顶部控制区</td>
+                <td><span class="status-pill status-pill--pending">可选</span></td>
               </tr>
               <tr>
                 <td>4</td>
-                <td>Keep the page open if reconnecting appears so the stream can restore automatically.</td>
-                <td>Reconnect banner</td>
-                <td><span class="status-pill status-pill--ready">Automatic</span></td>
+                <td>若出现重连提示，请保持页面打开，等待链路自动恢复。</td>
+                <td>重连提示条</td>
+                <td><span class="status-pill status-pill--ready">自动</span></td>
               </tr>
             </tbody>
           </table>
@@ -1297,14 +1447,34 @@
 
         <article class="content-card">
           <div class="content-header">
-            <h3>Operator notes</h3>
-            <span>Current shell behavior</span>
+            <h3>会场公告</h3>
+            <span>值守提示</span>
           </div>
           <ul class="notice-list">
-            <li>The stream surface keeps the existing MJPEG image handling, including the fallback to repeated JPEG pulls after repeated MJPEG load failures.</li>
-            <li>PIN, blocked-address, reconnect, and reload flows still come from the same WebSocket message types as before.</li>
-            <li>The page background continues to follow server-side HTML color settings even though the overall shell now uses white cards and a red enterprise accent.</li>
-            <li>Viewer controls are no longer hidden behind mouse movement, which makes the page easier to operate from a tablet or touch display.</li>
+            <li>
+              <div>
+                <strong>主视觉区优先</strong>
+                <span>直播画面仍是页面中心，状态卡与辅助说明退到浮层位置，不遮断核心播放逻辑。</span>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>原有状态机保留</strong>
+                <span>PIN、封禁、重连、刷新与 JPEG 回退仍由既有 WebSocket 分支驱动，未改成功能静态稿。</span>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>平板触控友好</strong>
+                <span>顶部操作维持较大点击区，按钮和输入区适合固定部署在会议平板首页。</span>
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>界面语义收敛</strong>
+                <span>下半屏保留四指标、流程表和公告板，但压低营销感，更接近会议中控终端样式。</span>
+              </div>
+            </li>
           </ul>
         </article>
       </section>
@@ -1396,70 +1566,70 @@
     }
 
     function renderStatus() {
-      var statusText = "Connecting";
-      var statusMeta = "WebSocket handshake is in progress.";
-      var accessText = "Waiting for policy";
-      var accessMeta = "PIN and address policy will be applied by the host device.";
-      var controlsText = enableButtons ? "Enabled" : "Hidden";
+      var statusText = "连接中";
+      var statusMeta = "正在建立 WebSocket 会话。";
+      var accessText = "等待主控";
+      var accessMeta = "PIN 与地址策略将由主控设备下发。";
+      var controlsText = enableButtons ? "已启用" : "隐藏";
       var controlsMeta = enableButtons ?
-        "Fullscreen, Picture in Picture, and device-side start/stop are available." :
-        "Viewer controls are disabled by the host device or blocked by PIN policy.";
-      var recoveryText = fallbackMode ? "JPEG fallback" : "Ready";
+        "可以使用全屏、画中画和设备侧开始/停止。" :
+        "当前未开放查看端控制，或仍受 PIN 策略限制。";
+      var recoveryText = fallbackMode ? "JPEG 回退" : "就绪";
       var recoveryMeta = fallbackMode ?
-        "Repeated MJPEG load failures switched the viewer to the JPEG fallback loop." :
-        "Reconnect banner and fallback remain available.";
-      var heroText = "Awaiting host device";
-      var pillText = "Standby";
-      var transportText = fallbackMode ? "JPEG fallback active" : "MJPEG";
+        "多次 MJPEG 加载失败后，当前页面已切换到 JPEG 回退循环。" :
+        "保留重连提示与回退路径。";
+      var heroText = "等待主控接入";
+      var pillText = "待机";
+      var transportText = fallbackMode ? "JPEG 回退中" : "MJPEG 直连";
 
       if (accessState === "direct") {
-        accessText = "Direct access";
-        accessMeta = "The viewer can open the stream without entering a PIN.";
+        accessText = "直接接入";
+        accessMeta = "当前查看端可直接打开流，无需输入 PIN。";
       } else if (accessState === "pin-required") {
-        accessText = "PIN required";
-        accessMeta = "Enter the code from the Android host device to continue.";
+        accessText = "需要 PIN";
+        accessMeta = "请输入 Android 主控设备显示的 PIN 后继续。";
       } else if (accessState === "pin-approved") {
-        accessText = "PIN approved";
-        accessMeta = "The viewer passed verification and can receive the live stream.";
+        accessText = "PIN 已通过";
+        accessMeta = "当前查看端已完成校验，可以接收实时画面。";
       } else if (accessState === "blocked") {
-        accessText = "Blocked";
-        accessMeta = "Too many invalid PIN attempts caused the current address to be blocked.";
+        accessText = "已封禁";
+        accessMeta = "错误 PIN 尝试过多，当前地址已被临时封禁。";
       }
 
       if (shellState === "pin") {
-        statusText = "PIN check";
-        statusMeta = "The host device requires verification before revealing the MJPEG address.";
-        heroText = "PIN verification required";
-        pillText = "Protected";
+        statusText = "等待校验";
+        statusMeta = "主控设备要求先完成验证，才会下发 MJPEG 地址。";
+        heroText = "需要 PIN 校验";
+        pillText = "受保护";
       } else if (shellState === "blocked") {
-        statusText = "Access blocked";
-        statusMeta = "The current client address is blocked from viewing the stream.";
-        heroText = "Address blocked";
-        pillText = "Blocked";
+        statusText = "访问受限";
+        statusMeta = "当前客户端地址已被禁止查看该路画面。";
+        heroText = "当前地址已封禁";
+        pillText = "封禁";
       } else if (shellState === "error") {
-        statusText = "Unavailable";
-        statusMeta = "The viewer could not restore the session and needs manual attention.";
-        heroText = "Viewer attention required";
-        pillText = "Error";
+        statusText = "不可用";
+        statusMeta = "查看端未能恢复当前会话，需要人工处理。";
+        heroText = "当前会话需要处理";
+        pillText = "异常";
       } else if (hasStreamImage) {
-        statusText = isReconnecting ? "Reconnecting" : "Live";
+        statusText = isReconnecting ? "重连中" : "直播中";
         statusMeta = isReconnecting ?
-          "The last frame stays visible while the viewer tries to reconnect to the host device." :
-          "The MJPEG stream is rendering inside the conference display shell.";
-        heroText = isReconnecting ? "Trying to restore session" : "Live conference view";
-        pillText = isReconnecting ? "Reconnecting" : "Live";
+          "页面会保留上一帧，同时尝试重新连接主控设备。" :
+          "MJPEG 画面已在会议主屏区域内渲染。";
+        heroText = isReconnecting ? "正在恢复主屏画面" : "会议主屏直播中";
+        pillText = isReconnecting ? "重连中" : "直播中";
       } else if (isReconnecting) {
-        statusText = "Recovering";
-        statusMeta = "The viewer is re-establishing the session and waiting for the stream to return.";
-        heroText = "Restoring connection";
-        pillText = "Recovering";
+        statusText = "恢复中";
+        statusMeta = "正在重新建立会话，并等待流画面返回。";
+        heroText = "正在恢复连接";
+        pillText = "恢复中";
       }
 
       if (isReconnecting && !fallbackMode) {
-        recoveryText = "Reconnecting";
+        recoveryText = "重连中";
         recoveryMeta = keepImageOnReconnect && hasStreamImage ?
-          "The previous frame remains on screen while the connection recovers." :
-          "The shell is waiting for the host stream to come back online.";
+          "连接恢复期间将继续保留上一帧画面。" :
+          "页面正在等待主控流重新上线。";
       }
 
       heroStatus.textContent = heroText;

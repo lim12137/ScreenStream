@@ -36,6 +36,8 @@
   - 写命令：`ControllerCommand`
   - 写结果：`ControllerCommandResult`
 - 控制消息必须自带 `commandId`、`controllerSessionId`、`stateVersion` 等幂等和并发控制字段。
+- `ControllerSessionSnapshot` 的首包/首个快照响应必须必带 `controllerSessionId`、`stateVersion`、`lastAppliedCommandId`、`updatedAt`、`ownerControllerId`。
+- 写接口统一挂载到单端口 `mjpeg` Ktor 宿主内的 `/controller/v1`，由 `app` 注入 `ControllerCommandGateway` 后做路由收口，不再新增第二套监听。
 
 ### 3.3 独立鉴权
 
@@ -47,6 +49,7 @@
 
 - 控制页只看 `ControllerSessionSnapshot`，不直接读 `MeetingSessionState`。
 - `ControllerSessionSnapshot` 是对宿主会话状态、流状态、错误状态和控制权状态的投影。
+- `sessionStatus` 只表示房间/控制权状态，`streamStatus` 只表示出流态；前者可为 `starting/active/switching/ending/start-rejected`，后者固定按 `starting/live/stopping/failed/stopped` 解释。
 - 只读页面刷新时，应该通过 snapshot 恢复当前控制面，而不是重放 viewer 页面事件。
 
 ## 4) 明确不复用的基础

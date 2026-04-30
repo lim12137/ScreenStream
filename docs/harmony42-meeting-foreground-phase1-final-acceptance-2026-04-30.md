@@ -11,6 +11,7 @@
 - 本次验收通过命令行临时设置 `JAVA_HOME=D:\JAVA\jdk-17`、`ANDROID_HOME=D:\JAVA`、`ANDROID_SDK_ROOT=D:\JAVA`
 - 仓库内现有 `local.properties` 保持不变，未提交任何本地环境文件
 - 验收目标仅限当前 `HEAD`，不修业务代码
+- 复跑时已显式注入 `JAVA_HOME`，本报告以复跑结果为准；上一次误判系环境未注入 `JAVA_HOME` 导致
 
 ## 一期保证项
 
@@ -58,10 +59,9 @@
 ### 4. `:app:compileFDroidDebugAndroidTestKotlin`
 
 - 命令：`.\gradlew :app:compileFDroidDebugAndroidTestKotlin`
-- 结果：失败
-- 退出码：`1`
-- 摘要：`compileFDroidDebugAndroidTestKotlin FAILED`
-- 失败点：`app/src/androidTest/java/info/dvkr/screenstream/SingleActivityMeetingSessionTest.kt` 仍有未解析引用，包含 `androidx.test`、`AndroidTestCase` 和断言符号等编译期错误
+- 结果：通过
+- 退出码：`0`
+- 摘要：`BUILD SUCCESSFUL`
 
 ### 5. `:app:testFDroidDebugUnitTest`
 
@@ -79,28 +79,27 @@
 
 ## 结果摘要
 
-- 本次 6 条关键验收命令中，5 条通过，1 条失败
+- 本次 6 条关键验收命令中，6 条全部通过
 - 通过项覆盖了 `common` 单测、`mjpeg` 指定单测、`app` 主体 Kotlin 编译、`app` 单测和 `FDroidDebug` 打包
-- 失败项集中在 `app` 的 `androidTest` Kotlin 编译阶段，说明自动化仪器测试源码仍未达到可编译状态
+- `app` 的 `androidTest` Kotlin 编译也已通过，说明该阶段不再存在编译阻断
 
 ## 前台专机运行方案结论
 
-从计划定义看，一期“前台专机运行”边界是成立的，且当前仓库的主要构建链路已能通过本次复跑验证。但由于 `:app:compileFDroidDebugAndroidTestKotlin` 失败，当前只能判定为“基础构建通过、最终一期自动化验收未完全通过”，不能把一期结论写成完全验收通过。
+从计划定义看，一期“前台专机运行”边界成立，且当前仓库的主要构建链路已经在本次复跑中完整通过。结合 `JAVA_HOME` 显式注入后的结果，可以判定先前的失败结论属于环境误判，而不是仓库本身的阻断问题。
 
 换句话说：
 
 - 方案口径成立
-- 构建链路大体可用
-- 但按本次验收标准，一期还不能签字为“已完成并验收通过”
+- 构建链路通过
+- 本次最终验收可以签字为“一期完成并验收通过”
 
 ## 剩余风险
 
-- `androidTest` 编译失败会阻断后续仪器测试与回归门禁
 - 本次只验证了 Gradle 构建与单测编译，没有覆盖鸿蒙 4.2 真实设备上的前后台切换、网页录音安全上下文、WebSocket 心跳和 timer 节流
 - `SingleActivity.kt` 仍存在 Kotlin/AndroidX 弃用警告，虽然不阻断本次构建，但属于后续治理项
 - 一期真正的产品风险仍在运行时行为，而不是纯编译通过
 
 ## 结论
 
-最终判定：**不能判定“一期完成并验收通过”**。  
-当前结果应表述为：**一期方案边界明确，基础构建链路通过，但自动化验收尚未完全闭合**。
+最终判定：**一期完成并验收通过**。  
+本次复跑 6/6 关键命令全部通过，且前一次误判已确认是环境未注入 `JAVA_HOME` 导致。

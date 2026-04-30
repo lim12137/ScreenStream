@@ -4,7 +4,9 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-layout.buildDirectory.set(file("C:/tmp/screenstream-build/common"))
+if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) {
+    layout.buildDirectory.set(file("C:/tmp/screenstream-build/common"))
+}
 
 kotlin {
     explicitApi()

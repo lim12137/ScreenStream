@@ -1,12 +1,12 @@
 package info.dvkr.screenstream.common.session
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import org.junit.Assert.assertEquals
+import org.junit.Test
 
 public class MeetingSessionCoordinatorTest {
 
     @Test
-    public fun `start room enters active state with foreground visibility`() {
+    public fun startRoomEntersActiveStateWithForegroundVisibility() {
         val coordinator = MeetingSessionCoordinator()
 
         val state = coordinator.handleEvent(
@@ -32,7 +32,7 @@ public class MeetingSessionCoordinatorTest {
     }
 
     @Test
-    public fun `switch target updates active room only`() {
+    public fun switchTargetUpdatesActiveRoomOnly() {
         val coordinator = MeetingSessionCoordinator()
         coordinator.handleEvent(
             MeetingSessionEvent.StartRoom(
@@ -64,7 +64,7 @@ public class MeetingSessionCoordinatorTest {
     }
 
     @Test
-    public fun `host background and foreground only update visibility`() {
+    public fun hostBackgroundAndForegroundOnlyUpdateVisibility() {
         val coordinator = MeetingSessionCoordinator()
         coordinator.handleEvent(
             MeetingSessionEvent.StartRoom(
@@ -102,7 +102,7 @@ public class MeetingSessionCoordinatorTest {
     }
 
     @Test
-    public fun `end room enters ending and can complete to idle`() {
+    public fun endRoomEntersEndingAndCanCompleteToIdle() {
         val coordinator = MeetingSessionCoordinator()
         coordinator.handleEvent(
             MeetingSessionEvent.StartRoom(
@@ -130,7 +130,7 @@ public class MeetingSessionCoordinatorTest {
     }
 
     @Test
-    public fun `switch target while idle is ignored`() {
+    public fun switchTargetWhileIdleIsIgnored() {
         val coordinator = MeetingSessionCoordinator()
 
         val state = coordinator.handleEvent(
@@ -145,7 +145,7 @@ public class MeetingSessionCoordinatorTest {
     }
 
     @Test
-    public fun `foreground start failed moves active room to start rejected`() {
+    public fun foregroundStartFailedMovesActiveRoomToStartRejected() {
         val coordinator = MeetingSessionCoordinator()
         coordinator.handleEvent(
             MeetingSessionEvent.StartRoom(

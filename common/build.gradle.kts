@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+layout.buildDirectory.set(file("C:/tmp/screenstream-build/common"))
+
 kotlin {
     explicitApi()
     jvmToolchain(17)
@@ -45,4 +47,5 @@ dependencies {
     api(libs.xlog)
 
     testImplementation(kotlin("test"))
+    testImplementation(kotlin("test-junit"))
 }

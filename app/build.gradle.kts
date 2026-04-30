@@ -172,4 +172,6 @@ dependencies {
     "PlayStoreImplementation"(libs.firebase.analytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics)
     "PlayStoreImplementation"(libs.firebase.crashlytics.ndk)
+
+    androidTestImplementation(kotlin("test-junit"))
 }

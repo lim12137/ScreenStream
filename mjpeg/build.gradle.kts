@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+layout.buildDirectory.set(file("C:/tmp/screenstream-build/mjpeg"))
+
 kotlin {
     explicitApi()
     jvmToolchain(17)
@@ -40,6 +42,7 @@ dependencies {
     implementation(libs.ktor.server.status.pages)
 
     testImplementation(kotlin("test"))
+    testImplementation(kotlin("test-junit"))
 }
 
 configurations.all {

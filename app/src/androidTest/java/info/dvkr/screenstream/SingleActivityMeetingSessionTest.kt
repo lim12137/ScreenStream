@@ -1,14 +1,17 @@
 package info.dvkr.screenstream
 
-import android.test.AndroidTestCase
 import info.dvkr.screenstream.common.session.HostVisibility
 import info.dvkr.screenstream.common.session.MeetingSessionCoordinator
 import info.dvkr.screenstream.common.session.MeetingSessionEndReason
 import info.dvkr.screenstream.common.session.MeetingSessionState
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
-@Suppress("DEPRECATION")
-public class SingleActivityMeetingSessionTest : AndroidTestCase() {
+public class SingleActivityMeetingSessionTest {
 
+    @Test
     public fun testActiveMeetingPauseAndStopOnlyChangeVisibility() {
         val host = SingleActivityMeetingHost(MeetingSessionCoordinator())
 
@@ -37,6 +40,7 @@ public class SingleActivityMeetingSessionTest : AndroidTestCase() {
         )
     }
 
+    @Test
     public fun testSwitchTargetKeepsRoomAndDoesNotRequestFinalRelease() {
         val host = SingleActivityMeetingHost(MeetingSessionCoordinator())
 
@@ -62,6 +66,7 @@ public class SingleActivityMeetingSessionTest : AndroidTestCase() {
         )
     }
 
+    @Test
     public fun testExplicitEndAndFinishingPathRequireFinalRelease() {
         val host = SingleActivityMeetingHost(MeetingSessionCoordinator())
 
@@ -81,6 +86,7 @@ public class SingleActivityMeetingSessionTest : AndroidTestCase() {
         assertTrue(host.shouldFinalizeOnDestroy(finalReleaseStarted = false))
     }
 
+    @Test
     public fun testFinishingWithoutExplicitEndDoesNotRequestFinalRelease() {
         val host = SingleActivityMeetingHost(MeetingSessionCoordinator())
         host.attach("https://host/room-1/tablet-a")
@@ -88,6 +94,7 @@ public class SingleActivityMeetingSessionTest : AndroidTestCase() {
         assertFalse(host.shouldFinalizeOnDestroy(finalReleaseStarted = false))
     }
 
+    @Test
     public fun testBackWithoutHistoryBackgroundsActiveMeeting() {
         val activeHost = SingleActivityMeetingHost(MeetingSessionCoordinator())
         activeHost.attach("https://host/room-1/tablet-a")

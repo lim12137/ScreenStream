@@ -1,47 +1,48 @@
 package info.dvkr.screenstream.mjpeg.internal
 
-import kotlin.test.Test
-import kotlin.test.assertFalse
-import kotlin.test.assertIs
-import kotlin.test.assertTrue
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 public class WebViewForegroundSessionTest {
 
     @Test
-    public fun `start is rejected when host activity is not visible`() {
+    public fun startIsRejectedWhenHostActivityIsNotVisible() {
         val session = WebViewForegroundSession()
 
         val result = session.start()
 
-        val rejected = assertIs<WebViewForegroundSession.StartResult.Rejected>(result)
-        assertIs<VisibleActivityRequiredException>(rejected.cause)
+        assertTrue(result is WebViewForegroundSession.StartResult.Rejected)
+        val rejected = result as WebViewForegroundSession.StartResult.Rejected
+        assertTrue(rejected.cause is VisibleActivityRequiredException)
         assertFalse(session.active)
         assertFalse(session.canAcceptFrames())
     }
 
     @Test
-    public fun `visible host allows webview streaming to start`() {
+    public fun visibleHostAllowsWebViewStreamingToStart() {
         val session = WebViewForegroundSession()
         session.updateHostVisibility(isVisible = true)
 
         val result = session.start()
 
-        assertIs<WebViewForegroundSession.StartResult.Started>(result)
+        assertTrue(result is WebViewForegroundSession.StartResult.Started)
         assertTrue(session.hostVisible)
         assertTrue(session.active)
         assertTrue(session.canAcceptFrames())
     }
 
     @Test
-    public fun `losing visible host stops active webview session`() {
+    public fun losingVisibleHostStopsActiveWebViewSession() {
         val session = WebViewForegroundSession()
         session.updateHostVisibility(isVisible = true)
         session.start()
 
         val result = session.updateHostVisibility(isVisible = false)
 
-        val stopRequired = assertIs<WebViewForegroundSession.VisibilityResult.StopRequired>(result)
-        assertIs<VisibleActivityRequiredException>(stopRequired.cause)
+        assertTrue(result is WebViewForegroundSession.VisibilityResult.StopRequired)
+        val stopRequired = result as WebViewForegroundSession.VisibilityResult.StopRequired
+        assertTrue(stopRequired.cause is VisibleActivityRequiredException)
         assertFalse(session.hostVisible)
         assertFalse(session.active)
         assertFalse(session.canAcceptFrames())

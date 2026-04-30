@@ -43,4 +43,6 @@ dependencies {
     api(libs.koin.android.compose)
 
     api(libs.xlog)
+
+    testImplementation(kotlin("test"))
 }

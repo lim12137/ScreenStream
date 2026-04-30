@@ -95,3 +95,11 @@ mjpeg / HttpServer
 - Win 主控页有独立鉴权。
 - Win 主控页不依赖 `mjpeg/src/main/assets/index.html`、`/socket`、`/start-stop` 作为协议基础。
 - `ControllerCommandGateway`、`ControllerSessionSnapshot`、`ControllerCommandResult` 成为控制面的唯一收口。
+
+## 7) 当前实现对齐（2026-05-01）
+
+- 当前一阶段已经落地的边界是 `common` 的控制契约与投影器、`app` 的 `ControllerCommandGatewayImpl`、`SingleActivity` 的命令桥接，以及 `mjpeg` 的 `/controller/v1` 挂载 seam。
+- 这仍然不是完整的 Win 主控 V1 HTTP 控制面，真实 `controller/v1` handler、鉴权收口和 Win 主控 UI 还在后续阶段。
+- 本次未 push 的原因是任务边界只要求本地提交，不要求也不允许额外推送。
+- 下一步优先级是先补 `app` 的 HTTP 路由实现与鉴权，再补 Win 主控页与端到端契约 / 集成测试。
+- 当前一阶段的验收口径与 action / CI 前置说明见 `docs/win-main-controller-v1-phase1-status-and-ci-precheck-2026-05-01.md`。

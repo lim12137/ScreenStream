@@ -5,9 +5,15 @@
 ## 整合结论
 
 - 当前分支：`feat/harmony42-foreground-hardening-phase1`
-- 目标提交：`530885770302d6bccb3fbc5a9c8edda2ebc77347`
-- 结论：`5308857` 已经是当前分支 `HEAD`，不存在“未并入当前分支”的额外 cherry-pick/merge 动作。
-- 冲突检查结果：当前工作区仅存在 `common/app` 的未提交第一阶段整合改动；未发现冲突标记，`git diff --check` 通过，和 `5308857` 的 `mjpeg` seam 可直接共同验收。
+- 当前 HEAD：`cc27d2e46380013c575e06ee65c13dfe78364213`
+- 结论：当前 HEAD 已包含 Win 主控 V1 第一阶段整合结果，没有额外 cherry-pick / merge 需要补。
+- 冲突检查结果：`git diff --check` 通过，未发现冲突标记；`common` / `app` / `mjpeg` 的 phase1 改动可以共同验收。
+
+## 当前状态补充
+
+- 当前一阶段已完成的范围与 CI 前置说明，统一收敛到 `docs/win-main-controller-v1-phase1-status-and-ci-precheck-2026-05-01.md`。
+- 本次任务边界要求只做本地提交，不 push，因此这次只保留 commit，不执行推送。
+- 下一步仍然是补真实 HTTP 控制面、鉴权和 Win 主控 UI，再补更完整的契约 / 集成验证。
 
 ## 已实现范围
 
@@ -49,6 +55,6 @@
 
 ## 残余限制
 
-- `mjpeg` 当前仅提供 `/controller/v1` 路由挂载 seam，仓内尚未落地真实的 HTTP 控制 handler/序列化实现；现阶段验收标准满足“单端口 seam 已接入”，不代表完整远控 API 已实现。
+- `mjpeg` 当前仅提供 `/controller/v1` 路由挂载 seam，仓内尚未落地真实的 HTTP 控制 handler / 序列化实现；现阶段验收标准满足“单端口 seam 已接入”，不代表完整远控 API 已实现。
 - `ControllerRouteRegistrar` 在 `mjpeg` 侧仍允许缺省为 `NoOp`，因此未注入真实 registrar 时控制根路径不会暴露可用业务接口。
 - 本次仅执行了要求中的最小验收集合，未额外执行更大范围的集成/UI/设备侧联调。

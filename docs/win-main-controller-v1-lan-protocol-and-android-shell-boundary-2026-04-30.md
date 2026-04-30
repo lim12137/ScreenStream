@@ -346,3 +346,11 @@ MeetingSessionCoordinator
 - 不把 viewer PIN 直接升级成主控鉴权。
 - 不让 Win 主控直接依赖 `MeetingSessionState`。
 - 不把 `mjpeg` 改造成控制面宿主的反向依赖入口。
+
+## 11) 当前阶段状态（2026-05-01）
+
+- 一阶段已经完成的代码边界是 `common` 契约、`app` gateway、`SingleActivity` 桥接和 `mjpeg` 单端口 seam。
+- 目前仍然没有完整落地 Win 主控 HTTP 控制面与 Win 主控 UI，本文件前面的协议设计仍然是后续实现目标。
+- 本次未 push 的原因是任务边界只要求本地提交，不要求额外推送。
+- 下一步优先级是补真实控制路由与鉴权，再接 Win 主控页和端到端验证。
+- `action/CI` 前置条件与当前验收口径见 `docs/win-main-controller-v1-phase1-status-and-ci-precheck-2026-05-01.md`。

@@ -1,66 +1,76 @@
-# 主控端与客户端并行边界说明
+# Win 主控边界：独立控制页与客户端页分离
 
-## 1) 当前边界
+## 1) 结论
 
-- 当前宿主入口是 `app/src/main/java/info/dvkr/screenstream/SingleActivity.kt`。
-- `SingleActivity` 已经承担了：
-  - `Intent` 命令入口解析
-  - 房间/目标切换
-  - WebView 宿主容器搭建
-  - 前后台生命周期处理
-  - MJPEG 模块启动与 WebView 帧推送
-- 会话状态机已经在 `common/src/main/java/info/dvkr/screenstream/common/session/MeetingSessionCoordinator.kt` 中单独存在，宿主层只负责调用。
-- `mjpeg/src/main/assets/index.html` 是客户端内容页，当前主要负责页面渲染、WebSocket 连接、PIN、重连、回退和页面内展示，不是 Android 宿主层。
+- Win 主控 V1 必须是独立控制页、独立路由、独立消息模型。
+- Win 主控页不能复用 `mjpeg/src/main/assets/index.html`、`/socket`、`/start-stop` 作为协议基础。
+- `mjpeg/src/main/assets/index.html` 继续只作为 viewer / 内容页，不承担主控协议、主控鉴权和主控状态真值。
+- 主控页只消费 `ControllerSessionSnapshot` 和 `ControllerCommandResult`，不直接读取或暴露 `MeetingSessionState`。
 
-## 2) 主控端 V1 最小切片
+## 2) 当前仓库中的真实边界
 
-主控端只保留“宿主真值”能力，不把控制逻辑下沉到页面。
-
-| 最小切片 | 具体职责 | 现有落点 |
+| 层 | 现状职责 | 说明 |
 | --- | --- | --- |
-| 宿主命令入口 | 接收开始房间、切换目标、结束房间 | `SingleActivity.getStartRoomIntent(...)` / `getSwitchTargetIntent(...)` / `getEndRoomIntent(...)` |
-| 宿主状态桥 | 把宿主事件翻译成会话更新 | `SingleActivityMeetingHost` |
-| 会话真值 | 维护房间、目标、前后台状态机 | `MeetingSessionCoordinator` |
-| 原生壳能力 | 管理生命周期、权限、WebView、系统栏、流启动/停止 | `SingleActivity` |
+| `app` | 宿主壳、页面容器、生命周期、DI 组装 | 这里是 Android / Harmony 宿主侧的边界，不是 Win 主控页本身 |
+| `common` | 会话协调器、共享模型、共享设置 | `MeetingSessionCoordinator` 仍是当前会话真值来源 |
+| `mjpeg` | MJPEG 推流与 viewer 侧 HTTP / WebSocket | 现有 `/socket`、`/start-stop` 仍属于 viewer 侧历史实现残留 |
+| Win 主控 V1 | 独立控制页 + 独立协议入口 | 这是新增控制面，不是 `mjpeg` 页面换皮 |
 
-- 主控端的最小目标是跑通“开始 - 切换 - 结束 - 恢复”闭环。
-- 主控端不承担页面渲染细节，也不把状态机搬进 `index.html`。
+- 当前仓库里，`MeetingSessionCoordinator` 只负责会话状态机，不负责控制页渲染。
+- 当前 `mjpeg/src/main/assets/index.html` 只是 viewer 内容页，它可以继续演化，但不能成为 Win 主控协议的基础页。
+- 任何未来控制面实现都必须通过独立路由和独立消息模型进入，不得通过 viewer 页面脚本直接接管主控。
 
-## 3) 客户端 V1 继续完善的最小切片
+## 3) Win 主控 V1 的边界要求
 
-这里的“客户端”指 `mjpeg/src/main/assets/index.html` 这一侧的 WebView/H5 内容端。
+### 3.1 独立路由
 
-| 最小切片 | 具体职责 |
+- Win 主控页必须挂在自己的控制路由下，例如 `/controller/v1/*` 这一类前缀。
+- 控制页路由和 viewer 路由必须分开注册，不能用 `mjpeg` 的页面路由承载控制协议。
+- 控制页首次加载、刷新、重连都只能依赖控制路由返回的 snapshot，不依赖 viewer DOM 状态。
+
+### 3.2 独立消息模型
+
+- 控制页与宿主之间只传控制消息，不传 viewer 专用消息。
+- 控制消息至少分成三类：
+  - 读模型：`ControllerSessionSnapshot`
+  - 写命令：`ControllerCommand`
+  - 写结果：`ControllerCommandResult`
+- 控制消息必须自带 `commandId`、`controllerSessionId`、`stateVersion` 等幂等和并发控制字段。
+
+### 3.3 独立鉴权
+
+- Win 主控鉴权必须独立于 viewer PIN。
+- viewer PIN 只能用于 viewer 读面，不能直接作为主控 bearer。
+- 主控页必须明确区分只读权限和可写权限。
+
+### 3.4 独立状态投影
+
+- 控制页只看 `ControllerSessionSnapshot`，不直接读 `MeetingSessionState`。
+- `ControllerSessionSnapshot` 是对宿主会话状态、流状态、错误状态和控制权状态的投影。
+- 只读页面刷新时，应该通过 snapshot 恢复当前控制面，而不是重放 viewer 页面事件。
+
+## 4) 明确不复用的基础
+
+| 不复用项 | 原因 |
 | --- | --- |
-| 页面渲染 | 负责流页面、状态区、提示区、按钮区的视觉输出 |
-| 连接管理 | 负责 WebSocket 连接、heartbeat、重连、恢复提示 |
-| 访问控制 | 负责 PIN 输入、校验结果展示、封禁/拒绝提示 |
-| 画面承载 | 负责 MJPEG 画面展示、JPEG 回退、可选的 PiP / 全屏控制 |
+| `mjpeg/src/main/assets/index.html` 作为控制面基础 | 它是 viewer 内容页，不是主控页 |
+| `/socket` 作为控制协议基础 | 它是 viewer 历史通信通道，不适合作为主控命令面 |
+| `/start-stop` 作为控制协议基础 | 它是 viewer 侧历史开停入口，不是主控协议语义 |
+| viewer PIN 作为主控鉴权 | 安全边界不同，权限语义不同 |
+| 直接暴露 `MeetingSessionState` | 这是内部状态机，不是 Win 主控读模型 |
+| 以页面 DOM 作为控制真值 | 刷新、重载、回退都会破坏控制一致性 |
 
-- 客户端 V1 继续完善的边界是“把连接和展示做稳”，不是“接管主控权”。
-- 客户端只消费宿主下发的状态和地址，不定义房间真值。
-- 客户端可以继续增强页面体验，但不能新增一套和宿主并行的控制状态机。
+## 5) 控制面落地原则
 
-## 4) 两条线的共享复用点
+- 控制能力必须收敛在 `ControllerCommandGateway` 边界之后。
+- 控制页、宿主、状态机之间通过 common 层 DTO 和接口交互，不允许 `mjpeg -> app` 反向依赖。
+- 可以复用现有单端口 Ktor 运行时，但控制路由必须作为独立挂载点接入。
+- 只要存在 viewer 路由和控制路由，就必须把两者的消息模型、鉴权和状态投影分开。
 
-| 共享点 | 主控端复用方式 | 客户端复用方式 |
-| --- | --- | --- |
-| 房间 / 目标 / 入口地址 | 由 `SingleActivity` 和 `MeetingSessionCoordinator` 统一管理 | 作为页面连接和显示所需参数使用 |
-| 会话状态 | 作为唯一真值来源 | 作为 UI 状态、提示文案和重连状态来源 |
-| MJPEG 通道 | 通过 `MjpegStreamingModule` 启停流与帧推送 | 通过 WebSocket / 画面地址接收流 |
-| 状态枚举与消息类型 | 通过宿主事件和更新对象流转 | 通过页面消息处理、错误提示和恢复逻辑消费 |
+## 6) 结论性验收标准
 
-## 5) 当前明确不做的内容
-
-- 不把主控逻辑迁移到 `mjpeg/src/main/assets/index.html`。
-- 不在页面层新增一套房间状态机。
-- 不让客户端接管宿主生命周期、权限、任务栈或系统栏控制。
-- 不重写 `mjpeg` 模块的流模型或事件模型。
-- 不做 WebRTC / RTSP 相关回归性改造。
-- 不做与本次边界无关的 UI 重构或业务代码改动。
-
-## 6) 结论
-
-- 主控端 V1 和客户端 V1 继续并行推进，但边界是分开的。
-- 主控端先稳住宿主真值和命令闭环，客户端继续补连接、展示和恢复能力。
-- 两条线只共享状态与通道，不共享控制职责。
+- Win 主控页有独立路由。
+- Win 主控页有独立消息模型。
+- Win 主控页有独立鉴权。
+- Win 主控页不依赖 `mjpeg/src/main/assets/index.html`、`/socket`、`/start-stop` 作为协议基础。
+- `ControllerCommandGateway`、`ControllerSessionSnapshot`、`ControllerCommandResult` 成为控制面的唯一收口。

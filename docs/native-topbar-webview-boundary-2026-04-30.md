@@ -1,5 +1,7 @@
 # 原生顶栏 + WebView 内容边界与下拉交互规范
 
+> 历史参考说明：本文档不再作为 Win 主控 V1 的当前真值，只保留当前 Android 宿主壳的历史边界记录。Win 主控边界以后以 `docs/main-controller-boundary-2026-04-30.md` 和 `docs/win-main-controller-v1-lan-protocol-and-android-shell-boundary-2026-04-30.md` 为准。
+
 ## 1) 目标与适用范围
 
 - 目标：把 ScreenStream 的“宿主控制面”和“网页内容面”分开，形成稳定、可维护的单 `Activity` 结构。
@@ -82,6 +84,7 @@
 - 顶栏的下拉、切换、选择结果只驱动 app 层状态和页面加载，不修改 `mjpeg` 的事件模型。
 - `mjpeg` 保持现有职责：接收 `WebView` 帧、维持 MJPEG 推流、处理流状态。
 - 如果需要页面内的展示条，可以保留在 `mjpeg/src/main/assets/index.html`，但它只属于 WebView 内容，不是宿主顶栏。
+- 这份文档里的顶栏 / WebView 约定只适用于当前 Android 宿主壳，不代表 Win 主控页的设计真值。
 
 ## 7) 相关代码参考路径
 
@@ -91,4 +94,3 @@
 - `mjpeg/src/main/assets/index.html`
 - `mjpeg/src/main/java/info/dvkr/screenstream/mjpeg/MjpegStreamingModule.kt`
 - `mjpeg/src/main/java/info/dvkr/screenstream/mjpeg/internal/MjpegStreamingService.kt`
-

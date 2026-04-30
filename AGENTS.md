@@ -18,6 +18,7 @@ ScreenStream streams Android screen and audio.
 Upstream originally supported Local (MJPEG), Global (WebRTC), and RTSP.
 This workspace is now being actively narrowed to a local-network-first MJPEG build.
 Treat the product target as single-mode local streaming even if some upstream RTSP/WebRTC source trees still remain in the repository during cleanup.
+Treat HarmonyOS 4.2 as the primary target platform for all future work, compatibility checks, and documentation unless a task explicitly says otherwise.
 
 ## Project Structure & Modules
 - `app`: Compose UI shell, DI wiring, and product flavors.

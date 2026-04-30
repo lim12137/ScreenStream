@@ -8,11 +8,17 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
+import android.text.TextUtils
+import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.PermissionRequest
@@ -22,6 +28,12 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.PopupWindow
+import android.widget.ScrollView
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
@@ -33,6 +45,7 @@ import androidx.lifecycle.lifecycleScope
 import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModuleManager
+import info.dvkr.screenstream.common.session.HostVisibility
 import info.dvkr.screenstream.common.session.MeetingSessionCoordinator
 import info.dvkr.screenstream.common.session.MeetingSessionEvent
 import info.dvkr.screenstream.common.session.MeetingSessionState
@@ -41,6 +54,7 @@ import info.dvkr.screenstream.mjpeg.MjpegStreamingModule
 import info.dvkr.screenstream.ui.enableEdgeToEdge
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.get
+import kotlin.math.min
 
 public class SingleActivity : AppUpdateActivity() {
 
@@ -85,7 +99,21 @@ public class SingleActivity : AppUpdateActivity() {
         }
     }
 
+    private data class TopBarSnapshot(
+        val roomText: String,
+        val statusText: String,
+        val visibilityText: String,
+        val targetHost: String,
+        val targetUrl: String,
+    )
+
     private lateinit var webView: WebView
+    private lateinit var topBarContainer: LinearLayout
+    private lateinit var titleView: TextView
+    private lateinit var subtitleView: TextView
+    private lateinit var infoTriggerView: LinearLayout
+    private lateinit var infoTriggerValueView: TextView
+    private lateinit var infoTriggerArrowView: ImageView
     private val appSettings: AppSettings by lazy { get() }
     private val streamingModuleManager: StreamingModuleManager by lazy { get() }
     private val meetingSessionCoordinator: MeetingSessionCoordinator by lazy { get() }
@@ -97,6 +125,7 @@ public class SingleActivity : AppUpdateActivity() {
     private var pendingWebPermissionRequest: PermissionRequest? = null
     private var streamingModule: MjpegStreamingModule? = null
     private var finalReleaseStarted: Boolean = false
+    private var infoPopupWindow: PopupWindow? = null
     private val recordAudioPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         val request = pendingWebPermissionRequest ?: return@registerForActivityResult
         if (isGranted) request.grant(arrayOf(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) else request.deny()
@@ -112,7 +141,7 @@ public class SingleActivity : AppUpdateActivity() {
 
         enableEdgeToEdge(
             statusBarColor = androidx.compose.ui.graphics.Color.Black,
-            navigationBarColor = androidx.compose.ui.graphics.Color.Black
+            navigationBarColor = androidx.compose.ui.graphics.Color.Black,
         )
 
         currentEntryUrl = resolveLaunchUrl(appSettings.data.value.webEntryUrl)
@@ -125,7 +154,7 @@ public class SingleActivity : AppUpdateActivity() {
         webView = WebView(this).apply {
             layoutParams = ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
+                ViewGroup.LayoutParams.MATCH_PARENT,
             )
             setBackgroundColor(Color.BLACK)
             fitsSystemWindows = false
@@ -155,9 +184,10 @@ public class SingleActivity : AppUpdateActivity() {
 
         ViewCompat.setOnApplyWindowInsetsListener(webView) { _, insets -> insets }
 
-        setContentView(webView)
+        setContentView(createHostContainer())
         hideSystemBars()
         startWebViewMjpegStreaming()
+        refreshTopBar()
 
         if (savedInstanceState == null) {
             webView.loadUrl(currentEntryUrl)
@@ -178,6 +208,7 @@ public class SingleActivity : AppUpdateActivity() {
             loadCurrentTarget = true,
         )
         hideSystemBars()
+        refreshTopBar()
     }
 
     override fun onResume() {
@@ -185,6 +216,7 @@ public class SingleActivity : AppUpdateActivity() {
         meetingHost.onHostForegrounded()
         webView.onResume()
         hideSystemBars()
+        refreshTopBar()
     }
 
     override fun onPause() {
@@ -195,6 +227,7 @@ public class SingleActivity : AppUpdateActivity() {
     }
 
     override fun onStop() {
+        dismissInfoMenu()
         meetingHost.onHostBackgrounded()
         super.onStop()
     }
@@ -205,7 +238,9 @@ public class SingleActivity : AppUpdateActivity() {
     }
 
     override fun onBackPressed() {
-        if (::webView.isInitialized && webView.canGoBack()) {
+        if (dismissInfoMenuIfShowing()) {
+            return
+        } else if (::webView.isInitialized && webView.canGoBack()) {
             webView.goBack()
         } else if (meetingHost.shouldMoveTaskToBackOnBackPress(canGoBack = false)) {
             moveTaskToBack(true)
@@ -215,6 +250,7 @@ public class SingleActivity : AppUpdateActivity() {
     }
 
     override fun onDestroy() {
+        dismissInfoMenu()
         if (meetingHost.shouldFinalizeOnDestroy(finalReleaseStarted = finalReleaseStarted)) {
             finalizeMeetingHost(reason = "SingleActivity.onDestroy")
         } else {
@@ -233,6 +269,128 @@ public class SingleActivity : AppUpdateActivity() {
             }
         }
         super.onDestroy()
+    }
+
+    private fun createHostContainer(): View {
+        val webViewContainer = FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            )
+            setBackgroundColor(Color.BLACK)
+            addView(
+                webView,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+        }
+
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(Color.BLACK)
+            fitsSystemWindows = false
+            addView(createNativeTopBar())
+            addView(webViewContainer)
+            ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+                val topInsets = insets.getInsets(WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout())
+                val bottomInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+                topBarContainer.setPadding(dp(16), topInsets.top + dp(10), dp(16), dp(10))
+                webViewContainer.setPadding(0, 0, 0, bottomInsets.bottom)
+                insets
+            }
+        }
+    }
+
+    private fun createNativeTopBar(): View {
+        titleView = TextView(this).apply {
+            setTextColor(Color.WHITE)
+            textSize = 18f
+            setTypeface(typeface, Typeface.BOLD)
+            text = "ScreenStream"
+        }
+        subtitleView = TextView(this).apply {
+            setTextColor(Color.parseColor("#8F9AAE"))
+            textSize = 12f
+        }
+
+        val titleContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 0.95f)
+            minimumWidth = dp(88)
+            addView(titleView)
+            addView(subtitleView)
+        }
+
+        val infoLabelView = TextView(this).apply {
+            setTextColor(Color.parseColor("#7F8AA3"))
+            textSize = 11f
+            text = "SESSION TARGET"
+        }
+        infoTriggerValueView = TextView(this).apply {
+            setTextColor(Color.WHITE)
+            textSize = 14f
+            ellipsize = TextUtils.TruncateAt.END
+            maxLines = 1
+        }
+        infoTriggerArrowView = ImageView(this).apply {
+            setImageResource(android.R.drawable.arrow_down_float)
+            setColorFilter(Color.parseColor("#D7DEEB"))
+        }
+
+        val infoTextContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            addView(infoLabelView)
+            addView(infoTriggerValueView)
+        }
+
+        infoTriggerView = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = dp(44)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1.2f).apply {
+                marginStart = dp(12)
+                marginEnd = dp(12)
+            }
+            setPadding(dp(14), dp(10), dp(12), dp(10))
+            background = createPillBackground(isExpanded = false)
+            isClickable = true
+            isFocusable = true
+            addView(infoTextContainer)
+            addView(infoTriggerArrowView)
+            setOnClickListener { toggleInfoMenu() }
+        }
+
+        val primaryActionView = TextView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            minWidth = dp(44)
+            gravity = Gravity.CENTER
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            text = "Entry URL"
+            background = createActionBackground()
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { showWebEntryUrlDialog() }
+        }
+
+        topBarContainer = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            minimumHeight = dp(76)
+            setBackgroundColor(Color.parseColor("#111318"))
+            elevation = dp(6).toFloat()
+            addView(titleContainer)
+            addView(infoTriggerView)
+            addView(primaryActionView)
+        }
+
+        return topBarContainer
     }
 
     private fun startWebViewMjpegStreaming() {
@@ -407,6 +565,8 @@ public class SingleActivity : AppUpdateActivity() {
     ) {
         if (update == null) return
 
+        dismissInfoMenu()
+
         update.entryUrlToLoad?.let { nextEntryUrl ->
             val resolvedEntryUrl = resolveLaunchUrl(nextEntryUrl)
             val shouldReload = resolvedEntryUrl != currentEntryUrl
@@ -420,6 +580,8 @@ public class SingleActivity : AppUpdateActivity() {
             finalizeMeetingHost(reason = "SingleActivity.explicitEnd")
             if (finishWhenFinalized && isFinishing.not()) finish()
         }
+
+        refreshTopBar(state = update.state)
     }
 
     private fun finalizeMeetingHost(reason: String) {
@@ -445,6 +607,223 @@ public class SingleActivity : AppUpdateActivity() {
             is MeetingSessionState.StartRejected -> Unit
         }
     }
+
+    private fun refreshTopBar(state: MeetingSessionState = meetingHost.currentState()) {
+        if (::titleView.isInitialized.not()) return
+
+        val snapshot = buildTopBarSnapshot(state)
+        titleView.text = "ScreenStream"
+        subtitleView.text = "Room ${snapshot.roomText} · ${snapshot.statusText}"
+        infoTriggerValueView.text = "${snapshot.targetHost} · ${snapshot.statusText}"
+    }
+
+    private fun buildTopBarSnapshot(state: MeetingSessionState): TopBarSnapshot {
+        val roomText = when (state) {
+            is MeetingSessionState.Active -> state.roomId
+            is MeetingSessionState.Ending -> state.roomId
+            is MeetingSessionState.StartRejected -> state.roomId.orEmpty().ifBlank { DEFAULT_ROOM_ID }
+            MeetingSessionState.Idle -> DEFAULT_ROOM_ID
+        }
+        val statusText = when (state) {
+            MeetingSessionState.Idle -> "Ready"
+            is MeetingSessionState.Active -> "Streaming"
+            is MeetingSessionState.Ending -> "Ending"
+            is MeetingSessionState.StartRejected -> "Start rejected"
+        }
+        val visibilityText = when (state) {
+            is MeetingSessionState.Active -> formatVisibility(state.hostVisibility)
+            is MeetingSessionState.Ending -> formatVisibility(state.hostVisibility)
+            else -> "Foreground"
+        }
+        val targetUrl = when (state) {
+            is MeetingSessionState.Active -> state.currentTarget.entryUrl
+            is MeetingSessionState.Ending -> state.currentTarget.entryUrl
+            is MeetingSessionState.StartRejected -> state.lastTarget?.entryUrl ?: currentEntryUrl
+            MeetingSessionState.Idle -> currentEntryUrl
+        }
+        val targetHost = runCatching { Uri.parse(targetUrl).host.orEmpty() }.getOrNull().orEmpty().ifBlank { targetUrl }
+
+        return TopBarSnapshot(
+            roomText = roomText,
+            statusText = statusText,
+            visibilityText = visibilityText,
+            targetHost = targetHost,
+            targetUrl = targetUrl,
+        )
+    }
+
+    private fun formatVisibility(visibility: HostVisibility): String = when (visibility) {
+        HostVisibility.FOREGROUND -> "Foreground"
+        HostVisibility.BACKGROUND -> "Background"
+    }
+
+    private fun toggleInfoMenu() {
+        if (infoPopupWindow?.isShowing == true) {
+            dismissInfoMenu()
+        } else {
+            showInfoMenu()
+        }
+    }
+
+    private fun showInfoMenu() {
+        if (::infoTriggerView.isInitialized.not()) return
+
+        val snapshot = buildTopBarSnapshot(meetingHost.currentState())
+        val popupWidth = min(
+            maxOf(infoTriggerView.width, dp(240)),
+            resources.displayMetrics.widthPixels - dp(32),
+        )
+
+        infoPopupWindow = PopupWindow(
+            createInfoMenuContent(snapshot),
+            popupWidth,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            true,
+        ).apply {
+            isOutsideTouchable = true
+            elevation = dp(18).toFloat()
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setOnDismissListener {
+                infoPopupWindow = null
+                updateInfoTriggerAppearance(isExpanded = false)
+            }
+            showAsDropDown(infoTriggerView, 0, dp(8), Gravity.START)
+        }
+
+        updateInfoTriggerAppearance(isExpanded = true)
+    }
+
+    private fun createInfoMenuContent(snapshot: TopBarSnapshot): View = ScrollView(this).apply {
+        isFillViewport = true
+        setBackgroundColor(Color.TRANSPARENT)
+        addView(
+            LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(16), dp(16), dp(16), dp(16))
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(18).toFloat()
+                    setColor(Color.parseColor("#191D25"))
+                    setStroke(dp(1), Color.parseColor("#313949"))
+                }
+                addView(createInfoMenuHeader())
+                addView(createInfoMenuDivider())
+                addView(createInfoMenuRow(title = "Room", value = snapshot.roomText))
+                addView(createInfoMenuRow(title = "Access", value = "LAN direct"))
+                addView(createInfoMenuRow(title = "Status", value = snapshot.statusText))
+                addView(createInfoMenuRow(title = "Visibility", value = snapshot.visibilityText))
+                addView(createInfoMenuRow(title = "Channel", value = "MJPEG / WebView"))
+                addView(createInfoMenuRow(title = "Target", value = snapshot.targetHost))
+                addView(createInfoMenuRow(title = "Entry", value = snapshot.targetUrl, maxLines = 3))
+                addView(createInfoMenuDivider())
+                addView(
+                    createInfoMenuAction(title = "Reload content") {
+                        dismissInfoMenu()
+                        webView.reload()
+                    },
+                )
+            },
+        )
+    }
+
+    private fun createInfoMenuHeader(): View = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        addView(
+            TextView(context).apply {
+                setTextColor(Color.WHITE)
+                textSize = 15f
+                setTypeface(typeface, Typeface.BOLD)
+                text = "Host summary"
+            },
+        )
+        addView(
+            TextView(context).apply {
+                setTextColor(Color.parseColor("#7F8AA3"))
+                textSize = 12f
+                text = "Native top bar owns shell controls outside the WebView."
+            },
+        )
+    }
+
+    private fun createInfoMenuRow(title: String, value: String, maxLines: Int = 1): View =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(10), 0, dp(10))
+            addView(
+                TextView(context).apply {
+                    setTextColor(Color.parseColor("#7F8AA3"))
+                    textSize = 11f
+                    text = title.uppercase()
+                },
+            )
+            addView(
+                TextView(context).apply {
+                    setTextColor(Color.WHITE)
+                    textSize = 14f
+                    text = value
+                    ellipsize = TextUtils.TruncateAt.END
+                    this.maxLines = maxLines
+                },
+            )
+        }
+
+    private fun createInfoMenuAction(title: String, onClick: () -> Unit): View =
+        TextView(this).apply {
+            gravity = Gravity.CENTER
+            minimumHeight = dp(44)
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            setTextColor(Color.WHITE)
+            textSize = 13f
+            text = title
+            background = createActionBackground()
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { onClick() }
+        }
+
+    private fun createInfoMenuDivider(): View = View(this).apply {
+        layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(1),
+        ).apply {
+            topMargin = dp(4)
+            bottomMargin = dp(4)
+        }
+        setBackgroundColor(Color.parseColor("#313949"))
+    }
+
+    private fun dismissInfoMenuIfShowing(): Boolean {
+        val popupWindow = infoPopupWindow ?: return false
+        if (popupWindow.isShowing.not()) return false
+        popupWindow.dismiss()
+        return true
+    }
+
+    private fun dismissInfoMenu() {
+        infoPopupWindow?.dismiss()
+    }
+
+    private fun updateInfoTriggerAppearance(isExpanded: Boolean) {
+        if (::infoTriggerView.isInitialized.not()) return
+        infoTriggerView.background = createPillBackground(isExpanded = isExpanded)
+        infoTriggerArrowView.rotation = if (isExpanded) 180f else 0f
+    }
+
+    private fun createPillBackground(isExpanded: Boolean): GradientDrawable = GradientDrawable().apply {
+        shape = GradientDrawable.RECTANGLE
+        cornerRadius = dp(18).toFloat()
+        setColor(if (isExpanded) Color.parseColor("#222837") else Color.parseColor("#171B24"))
+        setStroke(dp(1), if (isExpanded) Color.parseColor("#5D7194") else Color.parseColor("#2A3242"))
+    }
+
+    private fun createActionBackground(): GradientDrawable = GradientDrawable().apply {
+        shape = GradientDrawable.RECTANGLE
+        cornerRadius = dp(18).toFloat()
+        setColor(Color.parseColor("#2A3345"))
+        setStroke(dp(1), Color.parseColor("#506481"))
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     private fun hideSystemBars() {
         WindowInsetsControllerCompat(window, window.decorView).apply {

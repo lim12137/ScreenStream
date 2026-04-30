@@ -40,6 +40,7 @@ import info.dvkr.screenstream.common.analytics.StartFailGroup
 import info.dvkr.screenstream.common.analytics.StreamMode
 import info.dvkr.screenstream.common.analytics.StreamingAnalytics
 import info.dvkr.screenstream.common.analytics.StreamingSessionAnalyticsTracker
+import info.dvkr.screenstream.common.controller.ControllerRouteRegistrar
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.ProjectionCoordinator
 import info.dvkr.screenstream.mjpeg.MjpegModuleService
@@ -69,7 +70,8 @@ internal class MjpegStreamingService(
     private val mutableMjpegStateFlow: MutableStateFlow<MjpegState>,
     private val networkHelper: NetworkHelper,
     private val mjpegSettings: MjpegSettings,
-    private val streamingAnalytics: StreamingAnalytics
+    private val streamingAnalytics: StreamingAnalytics,
+    private val controllerRouteRegistrar: ControllerRouteRegistrar = NoOpControllerRouteRegistrar
 ) : HandlerThread("MJPEG-HT", android.os.Process.THREAD_PRIORITY_DISPLAY), Handler.Callback {
 
     private val powerManager: PowerManager = service.application.getSystemService(PowerManager::class.java)
@@ -81,7 +83,7 @@ internal class MjpegStreamingService(
     private val coroutineScope by lazy(LazyThreadSafetyMode.NONE) { CoroutineScope(supervisorJob + coroutineDispatcher) }
     private val bitmapStateFlow = MutableStateFlow(createBitmap(1, 1))
     private val httpServer by lazy(mode = LazyThreadSafetyMode.NONE) {
-        HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), ::sendEvent)
+        HttpServer(service, mjpegSettings, bitmapStateFlow.asStateFlow(), controllerRouteRegistrar, ::sendEvent)
     }
     private val projectionCoordinator by lazy(mode = LazyThreadSafetyMode.NONE) {
         ProjectionCoordinator(

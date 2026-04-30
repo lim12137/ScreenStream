@@ -43,6 +43,7 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(kotlin("test-junit"))
+    testImplementation("io.ktor:ktor-server-test-host:${libs.versions.ktor.get()}")
 }
 
 configurations.all {

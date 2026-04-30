@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
 import com.elvishew.xlog.XLog
+import info.dvkr.screenstream.common.controller.ControllerRouteRegistrar
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.getVersionName
 import info.dvkr.screenstream.common.randomString
@@ -99,6 +100,7 @@ internal class HttpServer(
     context: Context,
     private val mjpegSettings: MjpegSettings,
     private val bitmapStateFlow: StateFlow<Bitmap>,
+    private val controllerRouteRegistrar: ControllerRouteRegistrar = NoOpControllerRouteRegistrar,
     private val sendEvent: (MjpegEvent) -> Unit
 ) {
     private val debuggable = context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -347,143 +349,146 @@ internal class HttpServer(
         }
 
         routing {
-            get("/") { call.respondText(indexHtml.get(), ContentType.Text.Html) }
-            get("favicon.ico") { call.respondBytes(favicon, ContentType.Image.XIcon) }
-            get("logo.svg") { call.respondBytes(logoSvg, ContentType.Image.SVG) }
-            get("start-stop") {
-                if (mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not())
-                    sendEvent(MjpegStreamingService.InternalEvent.StartStopFromWebPage)
-                call.respond(HttpStatusCode.NoContent)
-            }
-            get(serverData.jpegFallbackAddress) {
-                if (serverData.isAddressBlocked(call.request.origin.remoteAddress)) call.respond(HttpStatusCode.Forbidden)
-                else {
-                    val clientId = call.request.queryParameters["clientId"] ?: "-"
-                    val remoteAddress = call.request.origin.remoteAddress
-                    val remotePort = call.request.origin.remotePort
-                    serverData.addConnected(clientId, remoteAddress, remotePort)
-                    val bytes = lastJPEG.get()
-                    call.respondBytes(bytes, ContentType.Image.JPEG)
-                    serverData.setNextBytes(clientId, remoteAddress, remotePort, bytes.size)
-                    serverData.setDisconnected(clientId, remoteAddress, remotePort)
+            registerHttpServerRoutes(controllerRouteRegistrar = controllerRouteRegistrar) {
+                get("/") { call.respondText(indexHtml.get(), ContentType.Text.Html) }
+                get("favicon.ico") { call.respondBytes(favicon, ContentType.Image.XIcon) }
+                get("logo.svg") { call.respondBytes(logoSvg, ContentType.Image.SVG) }
+                get("start-stop") {
+                    if (mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not())
+                        sendEvent(MjpegStreamingService.InternalEvent.StartStopFromWebPage)
+                    call.respond(HttpStatusCode.NoContent)
                 }
-            }
-
-            webSocket("/socket") {
-                val clientId = call.request.getClientId()
-                val remoteAddress = call.request.origin.remoteAddress
-                serverData.addClient(clientId, this)
-
-                try {
-                    for (frame in incoming) {
-                        frame as? Frame.Text ?: continue
-                        val msg = runCatching { JSONObject(frame.readText()) }.getOrNull() ?: continue
-
-                        val enableButtons = mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not()
-                        val streamData = JSONObject().put("enableButtons", enableButtons).put("streamAddress", serverData.streamAddress)
-
-                        when (val type = msg.optString("type").uppercase()) {
-                            "HEARTBEAT" -> send("HEARTBEAT", msg.optString("data"))
-
-                            "CONNECT" -> when {
-                                mjpegSettings.data.value.enablePin.not() -> send("STREAM_ADDRESS", streamData)
-                                serverData.isAddressBlocked(remoteAddress) -> send("UNAUTHORIZED", "ADDRESS_BLOCKED")
-                                serverData.isClientAuthorized(clientId) -> send("STREAM_ADDRESS", streamData)
-                                else -> send("UNAUTHORIZED", null)
-                            }
-
-                            "PIN" -> when {
-                                serverData.isPinValid(clientId, remoteAddress, msg.optString("data")) -> send("STREAM_ADDRESS", streamData)
-                                serverData.isAddressBlocked(remoteAddress) -> send("UNAUTHORIZED", "ADDRESS_BLOCKED")
-                                else -> send("UNAUTHORIZED", "WRONG_PIN")
-                            }
-
-                            else -> {
-                                val m = "Unknown message type: $type"
-                                XLog.e(this@appModule.getLog("socket", m), IllegalArgumentException(m))
-                            }
-                        }
+                get(serverData.jpegFallbackAddress) {
+                    if (serverData.isAddressBlocked(call.request.origin.remoteAddress)) call.respond(HttpStatusCode.Forbidden)
+                    else {
+                        val clientId = call.request.queryParameters["clientId"] ?: "-"
+                        val remoteAddress = call.request.origin.remoteAddress
+                        val remotePort = call.request.origin.remotePort
+                        serverData.addConnected(clientId, remoteAddress, remotePort)
+                        val bytes = lastJPEG.get()
+                        call.respondBytes(bytes, ContentType.Image.JPEG)
+                        serverData.setNextBytes(clientId, remoteAddress, remotePort, bytes.size)
+                        serverData.setDisconnected(clientId, remoteAddress, remotePort)
                     }
-                } catch (ignore: CancellationException) {
-                } catch (cause: Exception) {
-                    XLog.w(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"), cause)
-                } finally {
-                    XLog.i(this@appModule.getLog("socket", "finally: $clientId"))
-                    serverData.removeSocket(clientId)
-                }
-            }
-
-            get(serverData.streamAddress) {
-                val clientId = call.request.getClientId()
-                val remoteAddress = call.request.origin.remoteAddress
-                val remotePort = call.request.origin.remotePort
-
-                if (serverData.isClientAllowed(clientId, remoteAddress).not()) {
-                    call.respond(HttpStatusCode.Forbidden)
-                    return@get
                 }
 
-                fun stopClientStream(channel: ByteWriteChannel) = channel.isClosedForWrite || serverData.isAddressBlocked(remoteAddress) ||
-                        serverData.isDisconnected(clientId, remoteAddress, remotePort)
+                webSocket("/socket") {
+                    val clientId = call.request.getClientId()
+                    val remoteAddress = call.request.origin.remoteAddress
+                    serverData.addClient(clientId, this)
 
-                call.respond(object : OutgoingContent.WriteChannelContent() {
-                    override val status: HttpStatusCode = HttpStatusCode.OK
+                    try {
+                        for (frame in incoming) {
+                            frame as? Frame.Text ?: continue
+                            val msg = runCatching { JSONObject(frame.readText()) }.getOrNull() ?: continue
 
-                    override val contentType: ContentType = contentType
+                            val enableButtons = mjpegSettings.data.value.htmlEnableButtons && serverData.enablePin.not()
+                            val streamData = JSONObject().put("enableButtons", enableButtons).put("streamAddress", serverData.streamAddress)
 
-                    override suspend fun writeTo(channel: ByteWriteChannel) {
-                        val emitCounter = AtomicLong(0L)
-                        val collectCounter = AtomicLong(0L)
+                            when (val type = msg.optString("type").uppercase()) {
+                                "HEARTBEAT" -> send("HEARTBEAT", msg.optString("data"))
 
-                        val mjpegFlow = mjpegSharedFlow.get() ?: return
-                        mjpegFlow.onStart {
-                            XLog.i(this@appModule.getLog("onStart", "Client: $clientId:$remotePort"))
-                            serverData.addConnected(clientId, remoteAddress, remotePort)
-                            channel.writeFully(jpegBoundary)
-                        }
-                            .onCompletion {
-                                XLog.i(this@appModule.getLog("onCompletion", "Client: $clientId:$remotePort"))
-                                serverData.setDisconnected(clientId, remoteAddress, remotePort)
-                            }
-                            .takeWhile { stopClientStream(channel).not() }
-                            .map { Pair(emitCounter.incrementAndGet(), it) }
-                            .conflate()
-                            .onEach { (emitCounter, jpeg) ->
-                                if (stopClientStream(channel)) return@onEach
-
-                                if (emitCounter - collectCounter.incrementAndGet() >= 5) {
-                                    XLog.i(this@appModule.getLog("onEach", "Slow connection. Client: $clientId"))
-                                    collectCounter.set(emitCounter)
-                                    serverData.setSlowConnection(clientId, remoteAddress, remotePort)
+                                "CONNECT" -> when {
+                                    mjpegSettings.data.value.enablePin.not() -> send("STREAM_ADDRESS", streamData)
+                                    serverData.isAddressBlocked(remoteAddress) -> send("UNAUTHORIZED", "ADDRESS_BLOCKED")
+                                    serverData.isClientAuthorized(clientId) -> send("STREAM_ADDRESS", streamData)
+                                    else -> send("UNAUTHORIZED", null)
                                 }
 
-                                // Write MJPEG frame
-                                val jpegSizeText = jpeg.size.toString().toByteArray()
-                                val mjpegHeader = buildPacket {
-                                    writeFully(jpegBaseHeader)
-                                    writeFully(jpegSizeText)
-                                    writeFully(crlf)
-                                    writeFully(crlf)
-                                }.readByteArray()
+                                "PIN" -> when {
+                                    serverData.isPinValid(clientId, remoteAddress, msg.optString("data")) ->
+                                        send("STREAM_ADDRESS", streamData)
+                                    serverData.isAddressBlocked(remoteAddress) -> send("UNAUTHORIZED", "ADDRESS_BLOCKED")
+                                    else -> send("UNAUTHORIZED", "WRONG_PIN")
+                                }
 
-                                val mjpegFooter = buildPacket {
-                                    writeFully(crlf)
-                                    writeFully(jpegBoundary)
-                                }.readByteArray()
-
-                                channel.writeFully(mjpegHeader)
-                                channel.writeFully(jpeg)
-                                channel.writeFully(mjpegFooter)
-                                channel.flush()
-                                // Write MJPEG frame
-
-                                val size = mjpegHeader.size + jpeg.size + mjpegFooter.size
-                                serverData.setNextBytes(clientId, remoteAddress, remotePort, size)
+                                else -> {
+                                    val m = "Unknown message type: $type"
+                                    XLog.e(this@appModule.getLog("socket", m), IllegalArgumentException(m))
+                                }
                             }
-                            .catch { /* Empty intentionally */ }
-                            .collect()
+                        }
+                    } catch (ignore: CancellationException) {
+                    } catch (cause: Exception) {
+                        XLog.w(this@appModule.getLog("socket", "catch: ${cause.localizedMessage}"), cause)
+                    } finally {
+                        XLog.i(this@appModule.getLog("socket", "finally: $clientId"))
+                        serverData.removeSocket(clientId)
                     }
-                })
+                }
+
+                get(serverData.streamAddress) {
+                    val clientId = call.request.getClientId()
+                    val remoteAddress = call.request.origin.remoteAddress
+                    val remotePort = call.request.origin.remotePort
+
+                    if (serverData.isClientAllowed(clientId, remoteAddress).not()) {
+                        call.respond(HttpStatusCode.Forbidden)
+                        return@get
+                    }
+
+                    fun stopClientStream(channel: ByteWriteChannel) = channel.isClosedForWrite || serverData.isAddressBlocked(remoteAddress) ||
+                            serverData.isDisconnected(clientId, remoteAddress, remotePort)
+
+                    call.respond(object : OutgoingContent.WriteChannelContent() {
+                        override val status: HttpStatusCode = HttpStatusCode.OK
+
+                        override val contentType: ContentType = contentType
+
+                        override suspend fun writeTo(channel: ByteWriteChannel) {
+                            val emitCounter = AtomicLong(0L)
+                            val collectCounter = AtomicLong(0L)
+
+                            val mjpegFlow = mjpegSharedFlow.get() ?: return
+                            mjpegFlow.onStart {
+                                XLog.i(this@appModule.getLog("onStart", "Client: $clientId:$remotePort"))
+                                serverData.addConnected(clientId, remoteAddress, remotePort)
+                                channel.writeFully(jpegBoundary)
+                            }
+                                .onCompletion {
+                                    XLog.i(this@appModule.getLog("onCompletion", "Client: $clientId:$remotePort"))
+                                    serverData.setDisconnected(clientId, remoteAddress, remotePort)
+                                }
+                                .takeWhile { stopClientStream(channel).not() }
+                                .map { Pair(emitCounter.incrementAndGet(), it) }
+                                .conflate()
+                                .onEach { (emitCounter, jpeg) ->
+                                    if (stopClientStream(channel)) return@onEach
+
+                                    if (emitCounter - collectCounter.incrementAndGet() >= 5) {
+                                        XLog.i(this@appModule.getLog("onEach", "Slow connection. Client: $clientId"))
+                                        collectCounter.set(emitCounter)
+                                        serverData.setSlowConnection(clientId, remoteAddress, remotePort)
+                                    }
+
+                                    // Write MJPEG frame
+                                    val jpegSizeText = jpeg.size.toString().toByteArray()
+                                    val mjpegHeader = buildPacket {
+                                        writeFully(jpegBaseHeader)
+                                        writeFully(jpegSizeText)
+                                        writeFully(crlf)
+                                        writeFully(crlf)
+                                    }.readByteArray()
+
+                                    val mjpegFooter = buildPacket {
+                                        writeFully(crlf)
+                                        writeFully(jpegBoundary)
+                                    }.readByteArray()
+
+                                    channel.writeFully(mjpegHeader)
+                                    channel.writeFully(jpeg)
+                                    channel.writeFully(mjpegFooter)
+                                    channel.flush()
+                                    // Write MJPEG frame
+
+                                    val size = mjpegHeader.size + jpeg.size + mjpegFooter.size
+                                    serverData.setNextBytes(clientId, remoteAddress, remotePort, size)
+                                }
+                                .catch { /* Empty intentionally */ }
+                                .collect()
+                        }
+                    })
+                }
             }
         }
     }

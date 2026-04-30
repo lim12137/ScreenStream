@@ -1,6 +1,8 @@
 package info.dvkr.screenstream.mjpeg
 
+import info.dvkr.screenstream.common.controller.ControllerRouteRegistrar
 import info.dvkr.screenstream.common.module.StreamingModule
+import info.dvkr.screenstream.mjpeg.internal.NoOpControllerRouteRegistrar
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
 import info.dvkr.screenstream.mjpeg.internal.NetworkHelper
 import info.dvkr.screenstream.mjpeg.settings.MjpegSettings
@@ -30,7 +32,8 @@ public val MjpegKoinModule: org.koin.core.module.Module = module {
                 mutableMjpegStateFlow = params.get(),
                 networkHelper = get(),
                 mjpegSettings = get(),
-                streamingAnalytics = get()
+                streamingAnalytics = get(),
+                controllerRouteRegistrar = runCatching { get<ControllerRouteRegistrar>() }.getOrNull() ?: NoOpControllerRouteRegistrar
             )
         } bind (MjpegStreamingService::class)
     }

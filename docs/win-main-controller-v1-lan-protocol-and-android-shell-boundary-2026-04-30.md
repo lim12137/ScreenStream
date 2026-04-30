@@ -6,7 +6,7 @@
 
 - 目标：先落一个局域网可用的 Win 主控 V1，覆盖“开始 / 切换 / 结束 / 查看状态 / 失败回显”的最小闭环。
 - 结论：Win 主控页是独立控制页，不是 viewer 页面换皮。
-- 结论：控制 API 必须复用现有单端口 `mjpeg` Ktor 宿主，并由 `app` 注入 `ControllerCommandGateway` 后挂载 `/controller/v1` 路由，控制边界仍然独立收口。
+- 结论：控制 API 必须复用现有单端口 `mjpeg` Ktor 宿主，并通过 `common` 定义的 `ControllerRouteRegistrar` seam 注入后挂载 `/controller/v1` 路由；`app` 只提供 `ControllerCommandGateway` 和控制路由实现，控制边界仍然独立收口。
 - 结论：Android / Harmony 端继续作为会话真值和流媒体宿主，但不直接把 `MeetingSessionState` 暴露给 Win 主控。
 - 结论：主控鉴权必须独立于 viewer PIN。
 
@@ -14,14 +14,39 @@
 
 | 层 | 负责什么 | 不负责什么 |
 | --- | --- | --- |
-| `common` | `ControllerCommandGateway` 接口、`ControllerSessionSnapshot`、命令 / 结果 DTO、状态投影规则 | 网络监听、页面渲染、具体 HTTP 实现 |
-| `app` | gateway 实现、Ktor 挂载、DI 组装、会话协调器接入、鉴权装配 | viewer 页面 DOM、`mjpeg` 具体实现细节 |
-| `mjpeg` | 仅保留 MJPEG 推流和 viewer 侧历史路由 | 主控命令、主控路由、主控鉴权 |
+| `common` | `ControllerRouteRegistrar`、`ControllerCommandGateway` 接口、`ControllerSessionSnapshot`、命令 / 结果 DTO、状态投影规则 | 网络监听、页面渲染、具体 HTTP 实现 |
+| `app` | `ControllerCommandGateway` 实现、控制路由实现、DI 组装、会话协调器接入、鉴权装配 | viewer 页面 DOM、`mjpeg` 具体实现细节 |
+| `mjpeg` | 单端口 `HttpServer` 宿主、MJPEG 推流、viewer 侧历史路由、接收 seam 注入并挂载控制路由 | 主控命令、主控鉴权 |
 | Win 主控页 | 独立路由、独立消息模型、控制台 UI | 直接读取 `MeetingSessionState`、复用 viewer 通道 |
 
 - 推荐继续复用现有 Ktor 运行时和单端口监听，但控制路由必须独立挂载。
 - `ControllerCommandGateway` 是控制命令的唯一边界，路由层只负责把 HTTP / JSON 请求翻译成 gateway 调用。
 - `mjpeg -> app` 不能建立反向依赖；如果 `mjpeg` 需要接入控制能力，只能依赖 `common` 的接口和 DTO，并通过 DI 注入具体实现。
+
+### 2.1 路由注入 seam（V1 真值）
+
+- 唯一 V1 真值：`common` 定义 `ControllerRouteRegistrar`。
+- 该 seam 只负责“把控制路由挂进现有 Ktor routing 树”，不承载业务逻辑。
+- `app` 提供 `ControllerCommandGateway` 和控制路由实现，路由实现内部闭包绑定 gateway。
+- V1 不再拆分 `ControllerHttpRouteBinder` 命名，统一用 `ControllerRouteRegistrar`。
+- `mjpeg` / `HttpServer` 只在构建参数里接收 `controllerRouteRegistrar`，在构建 routing 时调用它，把 `/controller/v1` 挂到现有单端口宿主上。
+- `mjpeg` 不引用 `app` 包名、实现类或内部模块名，因此不会形成 `mjpeg -> app` 的反向编译依赖。
+
+```
+Win 主控页
+   |
+   |  HTTP /controller/v1
+   v
+mjpeg / HttpServer
+   |
+   |  调用 common.ControllerRouteRegistrar
+   v
+app 提供的控制路由实现
+   |
+   |  只依赖 ControllerCommandGateway
+   v
+MeetingSessionCoordinator
+```
 
 ## 3) 独立消息模型
 
@@ -296,11 +321,12 @@
 
 ## 8) 实施顺序
 
-1. 先在 `common` 定义 `ControllerCommandGateway`、`ControllerSessionSnapshot`、`ControllerCommand`、`ControllerCommandResult` 和版本字段。
-2. 再在 `app` 里把 gateway 实现接到现有 `MeetingSessionCoordinator` 和宿主壳。
-3. 然后把控制路由挂到现有 Ktor 监听上，确保控制面和 viewer 面分路。
-4. 接着补鉴权、权限、幂等、版本检查和失败桥接。
-5. 最后实现 Win 主控页，并用契约测试 + 集成测试把 `start -> stream live` 闭环跑通。
+1. 先在 `common` 定义 `ControllerRouteRegistrar`，并把它定为 `mjpeg / HttpServer` 的控制路由注入 seam。
+2. 再在 `common` 补齐 `ControllerCommandGateway`、`ControllerSessionSnapshot`、`ControllerCommand`、`ControllerCommandResult` 和版本字段。
+3. 然后在 `app` 里实现 `ControllerCommandGateway` 和控制路由实现，把实现通过 seam 注入给 `mjpeg / HttpServer`。
+4. 接着把控制路由挂到现有 Ktor 监听上，确保控制面和 viewer 面分路。
+5. 再补鉴权、权限、幂等、版本检查和失败桥接。
+6. 最后实现 Win 主控页，并用契约测试 + 集成测试把 `start -> stream live` 闭环跑通。
 
 ## 9) 测试策略
 

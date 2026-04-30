@@ -37,7 +37,25 @@
   - 写结果：`ControllerCommandResult`
 - 控制消息必须自带 `commandId`、`controllerSessionId`、`stateVersion` 等幂等和并发控制字段。
 - `ControllerSessionSnapshot` 的首包/首个快照响应必须必带 `controllerSessionId`、`stateVersion`、`lastAppliedCommandId`、`updatedAt`、`ownerControllerId`。
-- 写接口统一挂载到单端口 `mjpeg` Ktor 宿主内的 `/controller/v1`，由 `app` 注入 `ControllerCommandGateway` 后做路由收口，不再新增第二套监听。
+- 写接口统一挂载到单端口 `mjpeg` Ktor 宿主内的 `/controller/v1`，由 `common` 的 `ControllerRouteRegistrar` seam 负责注入；`app` 只提供 `ControllerCommandGateway` 和控制路由实现，`mjpeg` 不直接依赖 `app`。
+
+### 3.2.1 路由 seam 约束
+
+- V1 真值是 `ControllerRouteRegistrar`，它定义在 `common` 或等价非 `app` 私有层。
+- `mjpeg / HttpServer` 只接收这个接口，不接收 `app` 的具体控制路由类。
+- V1 不再拆分 `ControllerHttpRouteBinder` 命名，统一用 `ControllerRouteRegistrar`。
+- `app` 在启动时把 `controllerRouteRegistrar` 作为构建参数注入给 `mjpeg / HttpServer`，由后者在构建 routing 时挂载 `/controller/v1`。
+- 这样依赖方向固定为 `app -> common`、`mjpeg -> common`，不会出现 `mjpeg -> app` 的反向编译依赖。
+
+```
+app
+ ├─ 提供 ControllerCommandGateway
+ └─ 提供 ControllerRouteRegistrar 实现
+
+mjpeg / HttpServer
+ └─ 依赖 common.ControllerRouteRegistrar
+     └─ 挂载 /controller/v1
+```
 
 ### 3.3 独立鉴权
 

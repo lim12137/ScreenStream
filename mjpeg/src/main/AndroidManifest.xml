@@ -16,6 +16,7 @@
             android:name=".MjpegModuleService"
             android:enabled="true"
             android:exported="false"
+            android:stopWithTask="true"
             android:foregroundServiceType="mediaProjection" />
     </application>
 </manifest>

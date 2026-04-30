@@ -38,6 +38,8 @@ dependencies {
     implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.websockets)
     implementation(libs.ktor.server.status.pages)
+
+    testImplementation(kotlin("test"))
 }
 
 configurations.all {

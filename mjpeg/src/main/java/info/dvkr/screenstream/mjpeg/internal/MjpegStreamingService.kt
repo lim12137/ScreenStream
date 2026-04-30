@@ -1,6 +1,9 @@
 package info.dvkr.screenstream.mjpeg.internal
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.app.ActivityManager
+import android.app.Application
 import android.content.ComponentCallbacks
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -17,6 +20,7 @@ import android.graphics.Shader
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -113,9 +117,27 @@ internal class MjpegStreamingService(
         )
     }
 
-    // All volatile vars must be written on this MJPEG-HT thread.
+    private val webViewForegroundSession = WebViewForegroundSession()
+    private val hostActivityLifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
+        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
+        override fun onActivityStarted(activity: Activity) = Unit
+        override fun onActivityStopped(activity: Activity) = Unit
+        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
+        override fun onActivityDestroyed(activity: Activity) = Unit
+
+        override fun onActivityResumed(activity: Activity) {
+            updateHostActivityVisibility(1, "${activity.javaClass.simpleName}.onResume")
+        }
+
+        override fun onActivityPaused(activity: Activity) {
+            updateHostActivityVisibility(-1, "${activity.javaClass.simpleName}.onPause")
+        }
+    }
+
+    // Volatile vars may cross the main thread and MJPEG-HT thread.
     @Volatile private var wakeLock: PowerManager.WakeLock? = null
-    // All volatile vars must be written on this MJPEG-HT thread.
+    @Volatile private var hostActivityVisible: Boolean = false
+    // Volatile vars may cross the main thread and MJPEG-HT thread.
 
     // All vars below must be read and written on this MJPEG-HT thread.
     private var startBitmap: Bitmap? = null
@@ -133,7 +155,10 @@ internal class MjpegStreamingService(
     private var bitmapCapture: BitmapCapture? = null
     private var currentError: MjpegError? = null
     private var previousError: MjpegError? = null
-    // All vars above must be read and written on this MJPEG-HT thread.
+    // Main thread only
+    private var resumedHostActivityCount: Int = 0
+    private var hostActivityCallbacksRegistered: Boolean = false
+    // Main-thread vars are listed immediately above.
 
     internal sealed class InternalEvent(priority: Int) : MjpegEvent(priority) {
         data class InitState(val clearIntent: Boolean = true) : InternalEvent(Priority.RESTART_IGNORE)
@@ -149,6 +174,9 @@ internal class MjpegStreamingService(
         data class Clients(val clients: List<MjpegState.Client>) : InternalEvent(Priority.RESTART_IGNORE)
         data class RestartServer(val reason: RestartReason) : InternalEvent(Priority.RESTART_IGNORE)
         data object UpdateStartBitmap : InternalEvent(Priority.RESTART_IGNORE)
+        data class WebViewHostVisibilityChanged(val isVisible: Boolean, val source: String) : InternalEvent(Priority.RESTART_IGNORE) {
+            override fun toString(): String = "WebViewHostVisibilityChanged(isVisible=$isVisible, source=$source)"
+        }
 
         data class Error(val error: MjpegError) : InternalEvent(Priority.RECOVER_IGNORE)
 
@@ -196,6 +224,7 @@ internal class MjpegStreamingService(
         super.start()
         XLog.d(getLog("start"))
 
+        registerHostActivityCallbacks()
         mutableMjpegStateFlow.value = MjpegState()
         sendEvent(InternalEvent.InitState())
 
@@ -244,6 +273,7 @@ internal class MjpegStreamingService(
     suspend fun destroyService() {
         XLog.d(getLog("destroyService"))
 
+        unregisterHostActivityCallbacks()
         wakeLock?.apply { if (isHeld) release() }
         supervisorJob.cancel()
 
@@ -267,7 +297,8 @@ internal class MjpegStreamingService(
             when (event) {
                 is InternalEvent.StartStream,
                 is MjpegEvent.CastPermissionsDenied,
-                is MjpegEvent.StartProjection -> sessionAnalyticsTracker.onStartAborted()
+                is MjpegEvent.StartProjection,
+                MjpegEvent.StartWebViewStream -> sessionAnalyticsTracker.onStartAborted()
             }
             XLog.w(getLog("sendEvent", "Pending destroy: Ignoring event => $event"))
             return
@@ -284,18 +315,26 @@ internal class MjpegStreamingService(
             handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.START_PROJECTION)
+            handler.removeMessages(MjpegEvent.Priority.START_WEBVIEW)
         }
         if (event is InternalEvent.Destroy) {
             handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.DESTROY_IGNORE)
             handler.removeMessages(MjpegEvent.Priority.START_PROJECTION)
+            handler.removeMessages(MjpegEvent.Priority.START_WEBVIEW)
         }
         if (event is MjpegEvent.StartProjection) {
             if (handler.hasMessages(MjpegEvent.Priority.START_PROJECTION)) {
                 XLog.i(getLog("sendEvent", "Replacing pending StartProjection"))
             }
             handler.removeMessages(MjpegEvent.Priority.START_PROJECTION)
+        }
+        if (event is MjpegEvent.StartWebViewStream) {
+            if (handler.hasMessages(MjpegEvent.Priority.START_WEBVIEW)) {
+                XLog.i(getLog("sendEvent", "Replacing pending StartWebViewStream"))
+            }
+            handler.removeMessages(MjpegEvent.Priority.START_WEBVIEW)
         }
 
         handler.sendMessageDelayed(handler.obtainMessage(event.priority, event), timeout)
@@ -340,6 +379,7 @@ internal class MjpegStreamingService(
                 isStreaming = false
                 waitingForPermission = false
                 webViewStreaming = false
+                webViewForegroundSession.reset(hostActivityVisible)
                 if (event.clearIntent) mediaProjectionIntent = null
                 mediaProjection = null
                 bitmapCapture = null
@@ -408,6 +448,7 @@ internal class MjpegStreamingService(
             }
 
             is MjpegEvent.StartProjection -> {
+                webViewForegroundSession.stop()
                 webViewStreaming = false
                 waitingForPermission = false
                 XLog.i(getLog("MjpegEvent.StartProjection", "SP_TRACE route=preflight_v1 stage=async_start preflight=${event.foregroundStartProcessed} preflightError=${event.foregroundStartError?.javaClass?.simpleName ?: "none"} pendingServer=$pendingServer isStreaming=$isStreaming cachedIntent=${mediaProjectionIntent != null}"))
@@ -543,16 +584,37 @@ internal class MjpegStreamingService(
             }
             MjpegEvent.StartWebViewStream -> {
                 waitingForPermission = false
-                if (pendingServer) return
-                if (isStreaming) return
-                webViewStreaming = true
-                isStreaming = true
-                currentError = null
-                sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
+                if (pendingServer) {
+                    XLog.i(getLog("StartWebViewStream", "Server pending. Ignoring start."))
+                    return
+                }
+                if (isStreaming) {
+                    XLog.i(getLog("StartWebViewStream", "Already streaming. Ignoring start."))
+                    return
+                }
+
+                when (val result = webViewForegroundSession.start()) {
+                    WebViewForegroundSession.StartResult.Started -> {
+                        webViewStreaming = true
+                        isStreaming = true
+                        currentError = null
+                        sessionAnalyticsTracker.onStarted(currentActiveConsumersCount())
+                        XLog.i(getLog("StartWebViewStream", "Started with visibleHost=${webViewForegroundSession.hostVisible}"))
+                    }
+
+                    WebViewForegroundSession.StartResult.AlreadyActive ->
+                        XLog.i(getLog("StartWebViewStream", "WebView session already active. Ignoring start."))
+
+                    is WebViewForegroundSession.StartResult.Rejected -> {
+                        sessionAnalyticsTracker.onStartFailed(StartFailGroup.BLOCKED)
+                        currentError = result.cause.toForegroundAvailabilityError(service)
+                        XLog.w(getLog("StartWebViewStream", "Rejected. visibleHost=${webViewForegroundSession.hostVisible}"), result.cause)
+                    }
+                }
             }
 
             is MjpegEvent.WebViewFrame -> {
-                if (isStreaming && webViewStreaming) {
+                if (isStreaming && webViewStreaming && webViewForegroundSession.canAcceptFrames()) {
                     bitmapStateFlow.value = event.bitmap
                 }
             }
@@ -629,6 +691,19 @@ internal class MjpegStreamingService(
                 if (isStreaming.not() && mjpegSettings.data.value.htmlShowPressStart) bitmapStateFlow.value = getStartBitmap()
             }
 
+            is InternalEvent.WebViewHostVisibilityChanged -> when (val result = webViewForegroundSession.updateHostVisibility(event.isVisible)) {
+                WebViewForegroundSession.VisibilityResult.Noop -> Unit
+
+                WebViewForegroundSession.VisibilityResult.BecameVisible ->
+                    XLog.i(getLog("WebViewHostVisibilityChanged", "Visible via ${event.source}"))
+
+                is WebViewForegroundSession.VisibilityResult.StopRequired -> {
+                    XLog.w(getLog("WebViewHostVisibilityChanged", "Stopping WebView stream via ${event.source}"), result.cause)
+                    currentError = result.cause.toForegroundAvailabilityError(service)
+                    stopStream(result.stopReason)
+                }
+            }
+
             is MjpegEvent.Intentable.RecoverError -> {
                 stopStream("RecoverError")
                 httpServer.stop(true)
@@ -636,6 +711,7 @@ internal class MjpegStreamingService(
                 handler.removeMessages(MjpegEvent.Priority.RESTART_IGNORE)
                 handler.removeMessages(MjpegEvent.Priority.RECOVER_IGNORE)
                 handler.removeMessages(MjpegEvent.Priority.START_PROJECTION)
+                handler.removeMessages(MjpegEvent.Priority.START_WEBVIEW)
 
                 sendEvent(InternalEvent.InitState(true))
                 sendEvent(InternalEvent.DiscoverAddress("RecoverError", 0))
@@ -679,6 +755,7 @@ internal class MjpegStreamingService(
         val wasStreaming = isStreaming
         val activeConsumersAtStop = currentActiveConsumersCount()
         waitingForPermission = false
+        webViewForegroundSession.stop()
         if (wasStreaming) {
             XLog.i(
                 getLog(
@@ -714,6 +791,43 @@ internal class MjpegStreamingService(
         service.stopForeground()
 
         return wasStreaming
+    }
+
+    @MainThread
+    private fun registerHostActivityCallbacks() {
+        if (hostActivityCallbacksRegistered) return
+
+        service.application.registerActivityLifecycleCallbacks(hostActivityLifecycleCallbacks)
+        hostActivityCallbacksRegistered = true
+
+        val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+        val isVisible = importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
+        resumedHostActivityCount = if (isVisible) 1 else 0
+        hostActivityVisible = isVisible
+        XLog.i(getLog("registerHostActivityCallbacks", "Initial importance=$importance visible=$isVisible"))
+        sendEvent(InternalEvent.WebViewHostVisibilityChanged(isVisible, "initial_process_importance"))
+    }
+
+    @MainThread
+    private fun unregisterHostActivityCallbacks() {
+        if (hostActivityCallbacksRegistered.not()) return
+
+        service.application.unregisterActivityLifecycleCallbacks(hostActivityLifecycleCallbacks)
+        hostActivityCallbacksRegistered = false
+        resumedHostActivityCount = 0
+        hostActivityVisible = false
+    }
+
+    @MainThread
+    private fun updateHostActivityVisibility(delta: Int, source: String) {
+        val previousVisible = resumedHostActivityCount > 0
+        resumedHostActivityCount = max(resumedHostActivityCount + delta, 0)
+        val isVisible = resumedHostActivityCount > 0
+        hostActivityVisible = isVisible
+
+        if (previousVisible != isVisible) {
+            sendEvent(InternalEvent.WebViewHostVisibilityChanged(isVisible, source))
+        }
     }
 
     // Inline Only

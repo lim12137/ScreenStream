@@ -7,6 +7,7 @@ import com.elvishew.xlog.XLog
 import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModuleService
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
+import info.dvkr.screenstream.mjpeg.internal.VisibleActivityRequiredException
 import info.dvkr.screenstream.mjpeg.ui.MjpegError
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.android.inject
@@ -16,17 +17,28 @@ public class MjpegModuleService : StreamingModuleService() {
     internal companion object {
         internal fun getIntent(context: Context): Intent = Intent(context, MjpegModuleService::class.java).addIntentId()
 
+        private fun currentImportance(): Int =
+            ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+
+        private fun isVisibleActivityAvailable(importance: Int): Boolean =
+            importance <= ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
+
         internal fun startService(context: Context, intent: Intent) {
             XLog.d(getLog("MjpegModuleService.startService", "Run intent: ${intent.extras}"))
-            val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+            val importance = currentImportance()
             XLog.i(getLog("MjpegModuleService.startService", "RunningAppProcessInfo.importance: $importance"))
+            if (isVisibleActivityAvailable(importance).not()) {
+                val cause = VisibleActivityRequiredException()
+                XLog.w(getLog("MjpegModuleService.startService", "Reject background service start. importance=$importance"), cause)
+                throw cause
+            }
             context.startService(intent)
         }
 
         internal fun startProjection(context: Context, permissionIntent: Intent, source: String = "ui_permission") {
             val intent = MjpegEvent.Intentable.StartProjection(permissionIntent).toIntent(context)
             XLog.d(getLog("MjpegModuleService.startProjection", "Run intent: ${intent.extras}"))
-            val importance = ActivityManager.RunningAppProcessInfo().also { ActivityManager.getMyMemoryState(it) }.importance
+            val importance = currentImportance()
             XLog.i(getLog("MjpegModuleService.startProjection", "RunningAppProcessInfo.importance: $importance"))
             XLog.i(getLog("MjpegModuleService.startProjection", "SP_TRACE route=preflight_v1 stage=service_command source=$source importance=$importance"))
             context.startService(intent)

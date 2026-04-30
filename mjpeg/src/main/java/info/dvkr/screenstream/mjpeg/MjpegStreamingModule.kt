@@ -13,6 +13,7 @@ import info.dvkr.screenstream.common.getLog
 import info.dvkr.screenstream.common.module.StreamingModule
 import info.dvkr.screenstream.mjpeg.internal.MjpegEvent
 import info.dvkr.screenstream.mjpeg.internal.MjpegStreamingService
+import info.dvkr.screenstream.mjpeg.internal.toForegroundAvailabilityError
 import info.dvkr.screenstream.mjpeg.ui.MjpegMainScreenUI
 import info.dvkr.screenstream.mjpeg.ui.MjpegState
 import kotlinx.coroutines.NonCancellable
@@ -78,12 +79,14 @@ public class MjpegStreamingModule : StreamingModule {
         when (val state = _streamingServiceState.value) {
             StreamingModule.State.Initiated -> {
                 startToken = Uuid.random().toString()
+                _mjpegStateFlow.value = MjpegState()
                 _streamingServiceState.value = StreamingModule.State.PendingStart
                 try {
                     MjpegModuleService.startService(context, MjpegEvent.Intentable.StartService(startToken!!).toIntent(context))
                 } catch (t: Throwable) {
                     startToken = null
                     _streamingServiceState.value = StreamingModule.State.Initiated
+                    _mjpegStateFlow.value = MjpegState(error = t.toForegroundAvailabilityError(context))
                     throw t
                 }
             }
@@ -233,6 +236,8 @@ public class MjpegStreamingModule : StreamingModule {
             else -> when (event) {
                 is MjpegEvent.CastPermissionsDenied,
                 is MjpegEvent.StartProjection,
+                MjpegEvent.StartWebViewStream,
+                is MjpegEvent.WebViewFrame,
                 is MjpegEvent.Intentable.StopStream,
                 is MjpegStreamingService.InternalEvent.StartStream ->
                     XLog.i(getLog("sendEvent", "Ignoring stale event $event in state $state"))

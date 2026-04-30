@@ -167,6 +167,8 @@
     <string name="mjpeg_error_invalid_media_projection">Security error: Invalid media projection. Try one more time.</string>
     <string name="mjpeg_error_ip_address_not_found">IP address not found.\nTry to adjust network filters in stream settings.</string>
     <string name="mjpeg_error_notification_permission_required">Application requires notifications to be enabled to start streaming service.\nPlease enable notifications in application settings.</string>
+    <string name="mjpeg_error_webview_visible_activity_required">WebView-only streaming requires the meeting activity to stay visible. Return to the meeting screen to continue.</string>
+    <string name="mjpeg_error_webview_foreground_unavailable">Unable to start WebView-only streaming because foreground app visibility is unavailable.</string>
     <string name="mjpeg_error_unspecified">Something went wrong. Please try again later.</string>
 
     <string name="mjpeg_start_image_text">Start stream on device</string>

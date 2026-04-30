@@ -309,7 +309,7 @@ public class SingleActivity : AppUpdateActivity() {
             setTextColor(Color.WHITE)
             textSize = 18f
             setTypeface(typeface, Typeface.BOLD)
-            text = "ScreenStream"
+            setText(R.string.app_name)
         }
         subtitleView = TextView(this).apply {
             setTextColor(Color.parseColor("#8F9AAE"))
@@ -327,7 +327,7 @@ public class SingleActivity : AppUpdateActivity() {
         val infoLabelView = TextView(this).apply {
             setTextColor(Color.parseColor("#7F8AA3"))
             textSize = 11f
-            text = "SESSION TARGET"
+            setText(R.string.app_single_activity_top_bar_info_label)
         }
         infoTriggerValueView = TextView(this).apply {
             setTextColor(Color.WHITE)
@@ -371,7 +371,7 @@ public class SingleActivity : AppUpdateActivity() {
             setPadding(dp(16), dp(12), dp(16), dp(12))
             setTextColor(Color.WHITE)
             textSize = 13f
-            text = "Entry URL"
+            setText(R.string.app_single_activity_top_bar_entry_url)
             background = createActionBackground()
             isClickable = true
             isFocusable = true
@@ -612,8 +612,11 @@ public class SingleActivity : AppUpdateActivity() {
         if (::titleView.isInitialized.not()) return
 
         val snapshot = buildTopBarSnapshot(state)
-        titleView.text = "ScreenStream"
-        subtitleView.text = "Room ${snapshot.roomText} · ${snapshot.statusText}"
+        subtitleView.text = getString(
+            R.string.app_single_activity_top_bar_subtitle,
+            snapshot.roomText,
+            snapshot.statusText,
+        )
         infoTriggerValueView.text = "${snapshot.targetHost} · ${snapshot.statusText}"
     }
 

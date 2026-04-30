@@ -47,4 +47,30 @@ $env:Path = "$env:JAVA_HOME\bin;" + $env:Path
 
 ## GitHub Actions
 
-待用 `gh` 检查最新 `Android Build` workflow run 的最终结论，并补充到本报告。
+使用命令：
+
+```powershell
+gh run list --workflow "Android Build" --limit 1 --json databaseId,displayTitle,status,conclusion,headBranch,headSha,event,url,createdAt,updatedAt
+gh run watch 25192725557 --exit-status
+gh run view 25192725557 --json databaseId,displayTitle,status,conclusion,url,jobs,headSha,headBranch,event,createdAt,updatedAt
+```
+
+结果：
+
+- 最新 run：`25192725557`
+- 链接：`https://github.com/lim12137/ScreenStream/actions/runs/25192725557`
+- 触发方式：`push`
+- 分支：`feat/harmony42-foreground-hardening-phase1`
+- 提交：`bb298b5c9a35fc3f2c55f649d9af84433f3d47e7`
+- 总结论：`success`
+
+Job 结果：
+
+- `build-fdroid-debug`：`success`
+- `build-fdroid-release`：`success`
+
+本次 run 未再出现 Ubuntu 上因 Windows-only `buildDir` 导致的 `generate*RFile` / `R.jar` 失败。
+
+额外观察：
+
+- workflow 存在 GitHub Actions `Node.js 20` deprecation warning，但不影响本次构建结论。
